@@ -39,20 +39,18 @@ class UserController {
     }
 
     async genP(req: Request, res: Response, next: NextFunction) {
-
         generateProject(req.body)
-        const [project,] = await useTryCatch(this.ur.findOne())
-        if (project !== null || project !== undefined) {
-            project.projectCount = project.projectCount + 1;
-            await useTryCatch(this.ur.save(project))
-        } else {
-            await useTryCatch(this.ur.save({ projectCount: 1 }))
-        }
         res.sendStatus(200)
     }
 
 
     async getCount(req: Request, res: Response, next: NextFunction) {
+        const [pr, pErr] = await useTryCatch(this.ur.findOne())
+        if (pr) {
+            return pr.projectCount
+        } else {
+            res.sendStatus(403)
+        }
     }
 
 }
