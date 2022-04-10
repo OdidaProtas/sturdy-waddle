@@ -64,15 +64,15 @@ ${relations.map((r: any) => `Relation \`  ${r.type} \` - \`left: ${r.left} \`,  
 ${entities.map((e: any) => {
                     const n = e.EntityName
                     return `
-    \` post - /${n} \` saves and returns one or array of ${n}
+    \`post - /${n} \` saves and returns one or array of ${n}
 
-    \` get - /${n} \` returns all ${n}s. optional take and skip query params ie. ?take=10&skip=20 . Includes relations by default
+    \`get - /${n} \` returns all ${n}s. optional take and skip query params ie. ?take=10&skip=20 . Includes relations by default
     
-    \` get  - /${n}/:id \` returns one ${n} with matching id. Includes relations by default
+    \`get  - /${n}/:id \` returns one ${n} with matching id. Includes relations by default
 
-    \` put  - /${n} \` updates and returns one or array of ${n}  
+    \`put  - /${n} \` updates and returns one or array of ${n}  
 
-    \` - delete /${n}/:id \` deletes ${n} of given id
+    \`delete /${n}/:id \` deletes ${n} of given id
     `
                 })}
                 `, () => { })
@@ -292,7 +292,7 @@ ${entities.map((e: any) => {
 import { Request, Response, NextFunction } from "express"
 import createRoute from "../helpers/createRoute";
 import useTryCatch from "../helpers/useTryCatch";
-import { PrimaryGeneratedColumn, Entity, Column, getRepository ${myRels.map((p: any) => `,${inverseRel(p)}`).filter((v, i, s) => s.indexOf(v) === i).join("")}} from "typeorm"
+import { PrimaryGeneratedColumn, Entity, Column, getRepository ${myRels.map((p: any) => `,${inverseRel(p)}`).filter((v, i, s) => s.indexOf(v) === i).map(p => p === ",OneToOne" ? ",OneToOne,JoinColumn" : p).join("")}} from "typeorm"
 ${myRels.map((m: any) => `import ${m.right === EntityName ? `${m.left}` : `${m.right}`} from "./${m.right === EntityName ? `${m.left}` : `${m.right}`}";`).join(``)}
 
 @Entity() 
@@ -303,7 +303,8 @@ id: string
 ${columns.map((c: any) => `@Column(${c.nullable ? ` { nullable: true },` : ""}${c.default ? ` { default: ${c.default} },` : ""}) 
 ${c.key}: ${c.type}`).join("\n")}
 
-${myRels.map((m: any) => `@${inverseRel(m)}(() => ${m.right === EntityName ? m.left : m.right}, ${(m.right === EntityName ? m.left : m.right).toLowerCase()} => ${(m.right === EntityName ? m.left : m.right).toLowerCase()}.${(m.right === EntityName ? m.right : m.left).toLowerCase()}) 
+${myRels.map((m: any) => `@${inverseRel(m)}(() => ${m.right === EntityName ? m.left : m.right}, ${(m.right === EntityName ? m.left : m.right).toLowerCase()} => ${(m.right === EntityName ? m.left : m.right).toLowerCase()}.${(m.right === EntityName ? m.right : m.left).toLowerCase()})
+${m.type === "OneToOne" && m.left === EntityName ? "@JoinColumn()" : ""}
 ${(m.right === EntityName ? m.left : m.right).toLowerCase()}: ${m.right === EntityName ? m.left : m.right}${inverseType(inverseRel(m))}`).join("\n")} 
 }
 
@@ -323,15 +324,15 @@ class ${EntityName}Controller {
 }
 
 async all(req: Request, res: Response, next: NextFunction) {
-    if(Boolean(req.query.take)&& Boolean(req.query.skip)){
-        const [data, error] = await useTryCatch(this.${EntityName[0].toLowerCase()}R.find({take:req.query.take as unknown as number, skip:req.query.skip as unknown as number}))
-if (data) return data;
-else res.status(403).json(error);
-    }else{
+    if (Boolean(req.query.take) && Boolean(req.query.skip){
         const [data, error] = await useTryCatch(this.${EntityName[0].toLowerCase()}R.find())
-if (data) return data;
-else res.status(403).json(error);
-    }
+        if (data) return data;
+        else res.status(403).json(error);
+} else {
+    const [data, error] = await useTryCatch(this.uR.find())
+    if (data) return data;
+    else res.status(403).json(error);
+
   
 }
 
@@ -356,7 +357,7 @@ createRoute("post", ${'"'}/${EntityName}${'"'}, ${EntityName}Controller, "save")
 createRoute("get", ${'"'}/${EntityName}${'"'}, ${EntityName}Controller, "all"),
 createRoute("get", ${'"'}/${EntityName}/:id${'"'}, ${EntityName}Controller, "one"),
 createRoute("put", ${'"'}/${EntityName}${'"'}, ${EntityName}Controller, "update"),
-createRoute("delete", ${'"'}/${EntityName}/:id ${'"'}, ${EntityName}Controller, "delete"),
+createRoute("delete", ${'"'}/${EntityName}/:id${'"'}, ${EntityName}Controller, "delete"),
 ]
 `,
                     (err) => {

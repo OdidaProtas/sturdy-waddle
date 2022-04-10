@@ -1,8 +1,9 @@
 
 import { Request, Response, NextFunction } from "express"
 import createRoute from "../helpers/createRoute";
-import { PrimaryGeneratedColumn, Entity } from "typeorm"
+import { PrimaryGeneratedColumn, Entity, Column, getRepository } from "typeorm"
 import { generateProject } from "../generator/generator";
+import useTryCatch from "../helpers/useTryCatch";
 
 
 @Entity()
@@ -10,10 +11,15 @@ export default class User {
     @PrimaryGeneratedColumn("uuid")
     id: string
 
-
+    @Column({
+        default: 0
+    })
+    projectCount: number
 }
 
 class UserController {
+    private ur = getRepository(User)
+
     async getProject(req: Request, res: Response, next: NextFunction) {
         try {
             var dirPath = `./${req.params.name}Project`;
@@ -34,24 +40,19 @@ class UserController {
 
     async genP(req: Request, res: Response, next: NextFunction) {
 
-        const columns = [{
-            key: "name",
-            nullable: false,
-            type: "string"
-        },
-        { key: "email", nullable: false, type: "string" },
-        { key: "password", nullable: false, type: "string" }
-        ]
-
-        const relations = [{
-            entity: "Profile",
-            type: "OneToOne",
-            columns: [{ key: "age", nullable: false, type: "number" }, { key: "isMarried", default: false, type: "boolean" }]
-        }]
-        const sampleEntity = { EntityName: "User", columns, relations }
-
         generateProject(req.body)
+        const [project,] = await useTryCatch(this.ur.findOne())
+        if (project !== null || project !== undefined) {
+            project.projectCount = project.projectCount + 1;
+            await useTryCatch(this.ur.save(project))
+        } else {
+            await useTryCatch(this.ur.save({ projectCount: 1 }))
+        }
         res.sendStatus(200)
+    }
+
+
+    async getCount(req: Request, res: Response, next: NextFunction) {
     }
 
 }
@@ -59,5 +60,6 @@ class UserController {
 
 export const UserRoutes = [
     createRoute("post", "/generator", UserController, "genP"),
-    createRoute("get", "/project/:name", UserController, "getProject")
+    createRoute("get", "/project/:name", UserController, "getProject"),
+    createRoute("get", "/count", UserController, "getCount")
 ]

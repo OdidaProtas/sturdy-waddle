@@ -50,78 +50,91 @@ export default function ({ name, entities, relations }) {
                 , () => { })
 
             fs.mkdir(`./${name}Project/${name}ReactApp/src/hooks`, () => {
-                fs.appendFile(`./${name}Project/${name}ReactApp/src/hooks/hooks.js`, `
-          import * as React from "react";
-          import axiosInstance from "../store/axiosInstance"
-          import { useParams } from "react-router-dom";
-          import { StateContext } from "../store/store"
-          
-          export async function useTryCatch(promise) {
-              try {
-                  return [await promise, null]
-              } catch (e) {
-                  return [null, e]
-              }
-          }
-          
-          
-          export function useList({ name, effects, take, skip  }) {
-              const appContext = React.useContext(StateContext)
-              const dispatch = appContext["dispatch"]
-              const dir = appContext[\`\${name}List\`] || []
-              async function update() {
-                  dispatch({ type: "ADD_ENTITIES", context: \`\${name}ListLoader\`, payload:true })
-                  const getListPromise = axiosInstance.get(\`/\${name}?take=\${take}&skip=\${skip}\`)
-                  const [res, e] = await useTryCatch(getListPromise)
-                  if (e) {
-                    dispatch({ type: "ADD_ENTITIES", context: \`\${name}ListLoader\`, payload:false })
-                      dispatch({ type: "ERROR", where: \`\${name}List\`, error: e })
-                  } else {
-                      const {data}=res;
-                      dispatch({ type: "ADD_ENTITIES", context: \`\${name}List\`, payload: dir.concat(data) })
-                      dispatch({ type: "ADD_ENTITIES", context: \`\${name}ListLoader\`, payload:false })
-                  }
-              }
-          
-              React.useEffect(() => {
-                  update()
-              }, [])
-
-              React.useEffect(() => {
-                update()
-            }, [effects])
-          }
-          
-          
-          export function useItem({ name, key, effects }) {
-          
-              const appContext = React.useContext(StateContext)
-              const loading = appContext[\`\${name}Loader\`]
-              const [state, setState] = React.useState(null)
-          
-              const params = useParams()
-          
-              function update() {
-                  const list = (appContext[\`\${name}List\`] || []);
-                  const index = list.map(l => l[key]).indexOf(params[key]);
-                  setState(list[index]);
-              }
-          
-              React.useEffect(() => {
-                  update()
-              }, [name, params[key]].concat(effects))
-          
-              return {... {}, [name]: state, [\`\${name}ItemLoader\`]: loading }
-          }
-          
-          export function useQueries() {
-              return ({ redirect: "" })
-          }
-          
-          export function useDispatch() {
-              const { dispatch } = React.useContext(StateContext)
-              return dispatch;
-          }`, () => { })
+                fs.appendFile(`./${name}Project/${name}ReactApp/src/hooks/hooks.js`,
+                    `import * as React from "react";
+                import axiosInstance from "../store/axiosInstance"
+                import { useParams } from "react-router-dom";
+                import { StateContext } from "../store/store"
+                
+                export async function useTryCatch(promise) {
+                    try {
+                        return [await promise, null]
+                    } catch (e) {
+                        return [null, e]
+                    }
+                }
+                
+                
+                export function useList({ name, effects, take, skip }) {
+                    const appContext = React.useContext(StateContext)
+                    const dispatch = appContext["dispatch"]
+                    const dir = appContext[\`\${name}List\`] || []
+                    async function update() {
+                        dispatch({ type: "ADD_ENTITIES", context: \`\${name}ListLoader\`, payload: true })
+                        const getListPromise = axiosInstance.get(\`/\${name}?take=\${take}&skip=\${skip}\`)
+                        const [res, e] = await useTryCatch(getListPromise)
+                        if (e) {
+                            dispatch({ type: "ADD_ENTITIES", context: \`\${name}ListLoader\`, payload: false })
+                            dispatch({ type: "ERROR", where: \`\${name}List\`, error: e })
+                        } else {
+                            const { data } = res;
+                            dispatch({
+                                type: "ADD_ENTITIES",
+                                context: \`\${name}List\`,
+                                payload: data.concat((Boolean(take) && Boolean(skip)) ? dir : [])
+                            })
+                            dispatch({ type: "ADD_ENTITIES", context: \`\${name}ListLoader\`, payload: false })
+                        }
+                    }
+                
+                    React.useEffect(() => {
+                        update()
+                    }, [])
+                
+                
+                    React.useEffect(() => {
+                        update()
+                    }, effects || [])
+                }
+                
+                
+                export function useItem({ name, key, effects, id }) {
+                
+                
+                    const appContext = React.useContext(StateContext)
+                    const loading = appContext[\`\${name}ListLoader\`]
+                    const all = (appContext[\`\${name}List\`] || [])
+                    const updated = all.filter(f => f.isEdited).length
+                    const [state, setState] = React.useState(null)
+                
+                    const params = useParams()
+                
+                    function update() {
+                        const list = (appContext[\`\${name}List\`] || []);
+                        const index = list.map(l => l[key]).indexOf(id || params[key]);
+                        setState(list[index]);
+                    }
+                
+                    React.useEffect(() => {
+                        update()
+                    }, [])
+                
+                    React.useEffect(() => {
+                        update()
+                    }, [name, params[key], loading, id, all, updated].concat(effects))
+                
+                    return {... {}, [name]: state, loading }
+                }
+                
+                export function useQueries() {
+                    return ({ redirect: "" })
+                }
+                
+                export function useDispatch() {
+                    const { dispatch } = React.useContext(StateContext)
+                    return dispatch;
+                }`
+                    , () => { })
             })
 
             fs.mkdir(`./${name}Project/${name}ReactApp/src/data`, (
@@ -153,7 +166,21 @@ export default function ({ name, entities, relations }) {
           } else {
               return rel.left
           }
-      }`, () => { })
+      }
+
+      export function inverseRelations(rel, name) {
+        if (rel.type === "OneToOne" || rel.type === "ManyToMany") {
+            return rel.type
+        }
+        if (rel.left === name && rel.type === "OneToMany") {
+            return "ManyToOne"
+        } else {
+            return "OneToMany"
+        }
+    }
+      
+      
+      `, () => { })
             })
 
 
@@ -186,108 +213,123 @@ export default function Nav() {
                     , () => { })
                 fs.appendFile(`./${name}Project/${name}ReactApp/src/components/Entity.jsx`,
                     `import * as React from "react";
-import Grid from "@mui/material/Grid"
-import {List} from "../widgets/List"
-import {Form} from "../widgets/Form"
-import Box from "@mui/material/Box"
-import Toolbar from "@mui/material/Toolbar"
-
-import { Switch, Route, useRouteMatch } from "react-router-dom"
-
-export function Entity({ name }) {
-    const { path } = useRouteMatch()
-    return (
-        <Box sx={styles["container"]} >
-        <Toolbar />
-            <Grid container spacing={2} >
-                <Grid item xs={5} >
-                    <List name={name} />,
-                </Grid>
-                <Grid item xs >
-                    <Switch>
-                        {["", ":id"].map((r, i) => {
-                            const components = {
-                                "": <Form name={name} />,
-                                ":id": <Form edit name={name} />
-                            }
-                            return (
-                                <Route key={i} exact path={\`\${path}\${r ? \`/\${r}\` : ""}\`}  >
-                                    {components[r]}
-                                </Route>
-                            )
-                        })}
-                    </Switch>
-                </Grid>
-            </Grid>
-        </Box>
-    )
-}
-
-
-const styles = {
-    container: {
-        p: 2,
-    },
-}
-`
+                import Grid from "@mui/material/Grid"
+                import {List} from "../widgets/List"
+                import {Form} from "../widgets/Form"
+                import Box from "@mui/material/Box"
+                import Toolbar from "@mui/material/Toolbar"
+                
+                import { Switch, Route, useRouteMatch } from "react-router-dom"
+                import { Detail } from "../widgets/Detail";
+                
+                export function Entity({ name }) {
+                    const { path } = useRouteMatch()
+                    return (
+                        <Box sx={styles["container"]} >
+                        <Toolbar />
+                            <Grid container spacing={2} >
+                                <Grid item xs={5} >
+                                    <List name={name} />,
+                                </Grid>
+                                <Grid item xs >
+                                    <Switch>
+                                        {["", ":id"].map((r, i) => {
+                                            const components = {
+                                                "": <Form name={name} />,
+                                                ":id": <Detail edit name={name} />
+                                            }
+                                            return (
+                                                <Route key={i} exact path={\`\${path}\${r ? \`/\${r}\` : ""}\`}  >
+                                                    {components[r]}
+                                                </Route>
+                                            )
+                                        })}
+                                    </Switch>
+                                </Grid>
+                            </Grid>
+                        </Box>
+                    )
+                }
+                
+                
+                const styles = {
+                    container: {
+                        p: 2,
+                    },
+                }
+                `
                     , () => { })
                 fs.appendFile(`./${name}Project/${name}ReactApp/src/components/Home.jsx`,
                     `import logo from "../logo.svg"
-import Container from "@mui/material/Container"
-import Box from "@mui/material/Box"
-import { getEntities } from "../data/data"
-import Link from "@mui/material/Link"
-import Typography from "@mui/material/Typography"
-import Toolbar from "@mui/material/Toolbar"
-import { useHistory } from "react-router-dom"
-export function Home() {
-    const { push } = useHistory()
-    return (
-        <Container>
-        <Toolbar />
-        <Box sx={styles["header"]} >
-            <Box>
-                <img className={"App-logo"} height="108" src={logo} alt="logo" />
-                <br />
-                <Typography variant="h6" >Hello, world!</Typography>
-                <Typography sx={{ mt: 2 }} variant="h3" >AppReact Project</Typography>
-            </Box>
-        </Box>
-        <Typography variant="h5" sx={{ my: 2 }} >Models</Typography>
-        <Box sx={styles["body"]} >
-            {getEntities().map(e => e.EntityName).map((e, i) => {
-                return (
-                    <Box key={i} >
-                        <Link onClick={() => push(\`/\${e}\`)} sx={styles["link"]} >{e}</Link>
-                    </Box>
-                )
-            })}
-        </Box>
-
-    </Container>
-    )
-
-}
-
-const styles = {
-    header: {
-        minHeight: "30vh",
-        display: "flex",
-        justifyContent: "center",
-        textAlign: "center",
-        mt:6
-    },
-    body: {
-        mt: 3,
-        textAlign:"center",
-        display: "flex"
-
-    },
-    link:{
-        ml:3
-    }
-}`
-
+                import Container from "@mui/material/Container"
+                import Box from "@mui/material/Box"
+                import { getEntities } from "../data/data"
+                import Link from "@mui/material/Link"
+                import Typography from "@mui/material/Typography"
+                import { useHistory } from "react-router-dom"
+                import Toolbar from "@mui/material/Toolbar"
+                import Divider from "@mui/material/Divider"
+                export function Home() {
+                    const { push } = useHistory()
+                    return (
+                        <Container>
+                            <Toolbar />
+                            <Box sx={styles["header"]} >
+                                <Box>
+                                    <img className={"App-logo"} height="108" src={logo} alt="logo" />
+                                    <br />
+                                    <Typography variant="h6" >Hello, world!</Typography>
+                                    <Typography sx={{ mt: 2 }} variant="h3" >App Project</Typography>
+                                    <Divider sx={{ mt: 2 }} />
+                                    <Typography variant="h5" sx={{ mt: 5 }} >Models</Typography>
+                                </Box>
+                            </Box>
+                            <Box sx={styles["body"]} >
+                                {getEntities().map(e => e.EntityName).map((e, i) => {
+                                    return (
+                                        <Box key={i} >
+                                            <Link onClick={() => push(\`/\${e}\`)} sx={styles["link"]} >{e}</Link>
+                                    </Box>
+                                    )
+                                })}
+                            </Box>
+                
+                            <Box sx={{ textAlign: "center", mt: 4 }} >
+                                <Typography sx={{ mb: 1 }} >Edit models in /src/data/data.js</Typography>
+                                    {/* <Box>
+                                        <Link  >Customize this app</Link>
+                                        <span sx=
+                                            {{ fontWeight: "bold" }} > . </span>
+                                        <Link  >Working with the server</Link>
+                                    </Box> */}
+                            </Box>
+                
+                        </Container>
+                    )
+                
+                }
+                
+                const styles = {
+                    header: {
+                        minHeight: "30vh",
+                        display: "flex",
+                        justifyContent: "center",
+                        textAlign: "center",
+                        mt: 6
+                    },
+                    body: {
+                        mt: 3,
+                        justifyContent: "center",
+                        display: "flex"
+                
+                    },
+                    link: {
+                        mx: 3
+                    },
+                    alert: {
+                        mt: 3
+                    }
+                }`
                     , () => { })
 
                 fs.appendFile(`./${name}Project/${name}ReactApp/src/components/Auth.jsx`,
@@ -401,172 +443,303 @@ const styles = {
 
             fs.mkdir(`./${name}Project/${name}ReactApp/src/widgets`, (
             ) => {
-                fs.appendFile(`./${name}Project/${name}ReactApp/src/widgets/AddDialog.jsx`, `
-        import React from "react"
-        import { Form } from "./Form"
-        import Dialog from "@mui/material/Dialog"
-        import DialogContent from "@mui/material/DialogContent"
-        import DialogActions from "@mui/material/DialogActions"
-        import { useParams } from "react-router-dom"
-        import Button from "@mui/material/Button"
-        export function AddDialog({ name, title }) {
-            const [open, setOpen] = React.useState(false)
-            const { id } = useParams()
-            return (
-                <>
-                    <Button onClick={() => setOpen(!open)} >Add</Button>
-                    <Dialog onClose={()=>setOpen(!opem)} fullWidth open={open} >
-                        <DialogContent dividers >
-                            <Form dialog next={() => setOpen(false)} name={name} relationship={title} rID={id} />
-                        </DialogContent>
-                        <DialogActions>
-                            <Button onClick={() => setOpen(false)} >Cancel</Button>
-                        </DialogActions>
-                    </Dialog>
-                </>
+                fs.appendFile(`./${name}Project/${name}ReactApp/src/widgets/Dialog.jsx`,
+
+                    `
+import React from "react"
+import { Form } from "./Form"
+import Dialog from "@mui/material/Dialog"
+import DialogContent from "@mui/material/DialogContent"
+import DialogActions from "@mui/material/DialogActions"
+import { useParams } from "react-router-dom"
+import Button from "@mui/material/Button"
+import Link from "@mui/material/Link"
+
+export function AddDialog({ name, title }) {
+    const [open, setOpen] = React.useState(false)
+    const { id } = useParams()
+    return (
+        <>
+            <Button onClick={() => setOpen(!open)} >Add</Button>
+            <Dialog onClose={() => setOpen(!open)} fullWidth open={open} >
+                <DialogContent dividers >
+                    <Form dialog next={() => setOpen(false)} name={name} relationship={title} rID={id} />
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setOpen(false)} >Cancel</Button>
+                </DialogActions>
+            </Dialog>
+        </>
+    )
+}
+
+export function EditDialog({ name, title, link, id }) {
+    const [open, setOpen] = React.useState(false)
+    const toggle = (e) => {
+        e.stopPropagation()
+        setOpen(!open)
+    }
+    return (
+        <>
+            {!link && (
+                <Button onClick={toggle} >Edit</Button>
             )
-        }`
+            }
+            {link && (
+                <Link onClick={toggle} >Edit</Link>
+            )
+            }
+            <Dialog onClose={toggle} fullWidth open={open} >
+                <DialogContent dividers >
+                    <Form edit next={() => setOpen(!open)} name={name} rID={id} relationship={title} />
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setOpen(!open)} >Cancel</Button>
+                </DialogActions>
+            </Dialog>
+        </>
+    )
+}`
                     , () => {
 
                     })
                 fs.appendFile(`./${name}Project/${name}ReactApp/src/widgets/Form.jsx`,
                     `import * as React from "react";
-import Box from "@mui/material/Box"
-import Typography from "@mui/material/Typography"
-import Button from "@mui/material/Button"
-import Stack from "@mui/material/Stack"
-import CircularProgress from "@mui/material/CircularProgress"
+                import Box from "@mui/material/Box"
+                import Typography from "@mui/material/Typography"
+                import Button from "@mui/material/Button"
+                import Stack from "@mui/material/Stack"
+                import CircularProgress from "@mui/material/CircularProgress"
+                import TextField from "@mui/material/TextField"
+                import FormControlLabel from "@mui/material/FormControlLabel"
+                import MSwitch from "@mui/material/Switch"
+                import Alert from "@mui/material/Alert"
+                import Link from "@mui/material/Link"
+                import { useTryCatch, useQueries, useDispatch, useItem } from "../hooks/hooks";
+                import axiosInstance from "../store/axiosInstance";
+                import { getEntity, getRelations, filterUnique, getRelation, inverseRelations } from "../data/data";
+                
+                import { useHistory } from "react-router-dom"
+                import { SelectMultiple, SelectSingle } from "./Select";
+                import { Loader } from "./Loader";
+                
+                export function Form({ name, relationship, dialog, rID, next, edit }) {
+                
+                
+                    const { redirect } = useQueries()
+                    const entity = getEntity(relationship || name)
+                    const relations = getRelations(name)
+                
+                
+                    const [loading, setLoading] = React.useState(false)
+                    const [error, setError] = React.useState(false)
+                    const [success, setSuccess] = React.useState(false)
+                
+                    const item = useItem({
+                        name,
+                        id: rID,
+                        key: "id"
+                    })
+                
+                
+                    const [state, setState] = React.useState({ id: rID })
+                
+                    const loader = item["loading"]
+                
+                    const { push } = useHistory()
+                    const dispatch = useDispatch()
+                
+                    async function handleSubmit(e) {
+                        e.preventDefault()
+                        setLoading(true)
+                        setError(false)
+                        setSuccess(false)
+                        const promise = axiosInstance[edit ? "put" : "post"](\`/\${relationship || name}\`, { ...state, [relationship]: rID })
+                        const [res, err] = await useTryCatch(promise);
+                        if (err) {
+                            setError(err)
+                            setLoading(false)
+                            return;
+                        }
+                        setSuccess(true)
+                        if (edit) {
+                            dispatch({
+                                type: "UPDATE_ENTITY",
+                                payload: { ...res.data, isEdited: true },
+                                context: \`\${relationship || name}List\`,
+                                id: rID
+                            });
+                        } else {
+                            dispatch({
+                                type: "ADD_ENTITY",
+                                payload: { ...res.data, isNew: true },
+                                context: \`\${relationship || name}List\`
+                            });
+                        }
+                        setLoading(false);
+                        if (redirect || next) {
+                            setState(null)
+                            setTimeout(() => {
+                                if (next) {
+                                    next()
+                                } else {
+                                    push(redirect)
+                                }
+                            }, 450)
+                        } else {
+                            setState(null)
+                        }
+                
+                    }
+                
+                    function handleChange(e) {
+                        setError(false);
+                        setSuccess(false);
+                        setState(p => ({ ...p, [e.target.name]: e.target.value }))
+                    }
+                
+                    function hadleRelChange(v, name) {
+                        setState({ ...state, [name]: v })
+                    }
+                
+                
+                    const data = item[name]
+                
+                
+                
+                    return (
+                        <form onSubmit={handleSubmit}>
+                            <Stack sx={styles["container"]} spacing={2} >
+                                {!edit && !dialog && (
+                                    <Box sx={{ textAlign: "right" }}>
+                                        <Link onClick={() => push("/")} >Back Home</Link>
+                                    </Box>
+                                )}
+                                <Box sx={styles["header"]} >
+                                    <Typography variant="h5" >{edit ? "Edit" : "New"} {relationship || name}</Typography>
+                                </Box>
+                                {edit && loader && (
+                                    <Loader />
+                                )}
+                                <Stack spacing={2} >
+                                    {entity?.columns?.map((e, i) => {
+                                        const fields = {
+                                            password: <TextField
+                                                name={e.key}
+                                                key={i}
+                                                type={e.key.toLowerCase() === "password" ? "password" : e.type}
+                                                required
+                                                label={e.key}
+                                                onChange={handleChange}
+                                                fullWidth />,
+                                            string: <TextField
+                                                placeholder={(edit && state) ? state[e.key] : ""}
+                                                name={e.key}
+                                                key={i}
+                                                helperText={edit && data ? \`Current value: \${data[e.key]}\` : null}
+                                                type={e.type.toLowerCase() === "password" ? "password" : e.type}
+                                                required
+                                                label={e.key}
+                                                onChange={handleChange}
+                                                fullWidth />,
+                                            boolean: <FormControlLabel
+                                                key={i}
+                                                name={e.key}
+                                                control={<MSwitch defaultChecked />}
+                                                label={e.key}
+                                            />
+                                        }
+                                        return fields[e.type]
+                                    })}
+                                    {!dialog && (
+                                        <>  {relations.filter(filterUnique).map((m, i) => {
+                                            const relations = {
+                                                OneToMany: <SelectMultiple key={i} name={name} title={getRelation(m, name)} handleChange={hadleRelChange} value={null} />,
+                                                ManyToMany: <SelectMultiple key={i} name={name} title={getRelation(m, name)} handleChange={hadleRelChange} value={null} />,
+                                                ManyToOne: <SelectSingle key={i} name={name} title={getRelation(m, name)} handleChange={hadleRelChange} value={null} />,
+                                                OneToOne: <SelectSingle
+                                                    key={i}
+                                                    name={name}
+                                                    title={getRelation(m, name)}
+                                                    handleChange={hadleRelChange}
+                                                    value={state ? state[getRelation(m, name).toLowerCase()] : null} />
+                                            }
+                                            return relations[inverseRelations(m, name)]
+                                        })}
+                                        </>
+                                    )}
+                                </Stack>
+                
+                                <Box>
+                                    {success && (
+                                        <Alert>Success</Alert>
+                                    )}
+                                    {error && (
+                                        <Alert severity="error" >An error occured</Alert>
+                                    )}
+                                </Box>
+                                <Button
+                                    color={loading ? "secondary" : "primary"}
+                                    startIcon={loading ? <CircularProgress size={20} /> : null}
+                                    disableElevation
+                                    onClick={(relationship || edit) ? (e) => handleSubmit(e) : () => { }}
+                                    type={(loading || relationship || edit) ? "button" : "submit"}
+                                    fullWidth variant="contained"
+                                >{loading ? null : "Save"}</Button>
+                            </Stack>
+                        </form>
+                    )
+                }
+                
+                
+                
+                
+                const styles = {
+                    container: {
+                        p: 2,
+                    },
+                    header: {
+                        bgcolor: "lightgray",
+                        py: 3,
+                        textAlign: "center",
+                        borderRadius: "4px",
+                        minHeight: 30,
+                    },
+                    emptyDesc: {
+                        minHeight: "30vh",
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        textAlign: "center",
+                        container: {
+                            maxHeight: "72vh",
+                            overflow: "auto"
+                        }
+                    }
+                }
+                `
+                    , () => {
+
+                    })
+
+                fs.appendFile(`./${name}Project/${name}ReactApp/src/widgets/Select.jsx`,
+                    `import * as React from "react";
 import TextField from "@mui/material/TextField"
-import FormControlLabel from "@mui/material/FormControlLabel"
-import MSwitch from "@mui/material/Switch"
-import Alert from "@mui/material/Alert"
 import Grid from "@mui/material/Grid"
 import Autocomplete from "@mui/material/Autocomplete"
-
-import { useItem, useTryCatch, useQueries, useDispatch, useList } from "../hooks/hooks";
-import axiosInstance from "../store/axiosInstance";
+import { useList } from "../hooks/hooks";
 import { StateContext } from "../store/store";
-import { getEntity, getRelations, filterUnique, getRelation } from "../data/data";
+import { getEntity } from "../data/data";
+import Checkbox from "@mui/material/Checkbox"
+import { AddDialog } from "./Dialogs";
+import Box from "@mui/material/Box"
 
-import { useHistory } from "react-router-dom"
-import { AddDialog } from "./AddDialog";
-
-export function Form({ name, relationship, dialog, rID, next }) {
-
-    const data = useItem({
-        name,
-        key: "id",
-    })
-    const { redirect } = useQueries()
-    const entity = getEntity(relationship||name)
-    const relations = getRelations(name)
-
-    const [state, setState] = React.useState(null)
-
-    const [loading, setLoading] = React.useState(false)
-    const [error, setError] = React.useState(false)
-    const [success, setSuccess] = React.useState(false)
-
-    const { push } = useHistory()
-    const dispatch = useDispatch()
-
-    async function handleSubmit(e) {
-        e.preventDefault()
-        setLoading(true)
-        const promise = axiosInstance.post(\`/\${relationship?.toLowerCase()||name.toLowerCase()}\`, { ...state, [relationship]: rID })
-        const [ res , err] = await useTryCatch(promise);
-        if (err) {
-            setError(err)
-            setLoading(false)
-            return;
-        }
-        setSuccess(true)
-        dispatch({ type: "ADD_ENTITY", payload: { ...res.data, isNew: true }, context: \`$\{relationship || name}List\` });
-        setLoading(false);
-        if (redirect || next) {
-            setTimeout(() => {
-                if (next) {
-                    next()
-                } else {
-                    push(redirect)
-                }
-            }, 1700)
-        } else {
-            setState(null)
-        }
-
-    }
-
-    function handleChange(e) {
-        setError(false);
-        setSuccess(false);
-        setState({ ...state, [e.target.name]: e.target.value })
-    }
-
-    function hadleRelChange(v, name){
-    //   setState({...state, [name]:v})
-    }
-
-    
-
-    return (
-        <form onSubmit={handleSubmit}>
-            <Stack sx={styles["container"]} spacing={2} >
-                <Box sx={styles["header"]} >
-                    <Typography variant="h5" >New {relationship||name}</Typography>
-                </Box>
-                {entity?.columns?.map((e, i) => {
-                    const fields = {
-                        password: <TextField  name={e.key} key={i} type={e.key.toLowerCase() === "password" ? "password" : e.type} required label={e.key} onChange={handleChange} fullWidth />,
-                        string: <TextField  name={e.key} key={i} type={e.key.toLowerCase() === "password" ? "password" : e.type} required label={e.key} onChange={handleChange} fullWidth />,
-                        boolean: <FormControlLabel
-                            key={i}
-                            name={e.key}
-                            control={<MSwitch  defaultChecked />}
-                            label={e.key}
-                        />
-                    }
-                    return fields[e.type]
-                })}
-                {!dialog && (
-                    <>  {relations.filter(filterUnique).map(m => {
-                        const relations = {
-                            OneToMany: <SelectMultiple name={name}   title={getRelation(m, name)} handleChange={hadleRelChange} value={null} />,
-                            ManyToMany: <SelectMultiple name={name} title={getRelation(m, name)} handleChange={hadleRelChange} value={null} />,
-                            ManyToOne: <SelectSingle name={name}  title={getRelation(m, name)} handleChange={hadleRelChange} value={null} />,
-                            OneToOne: <SelectSingle name={name} title={getRelation(m,name)} handleChange={hadleRelChange} value={null} />
-                        }
-                        return relations[m.type]
-                    })}</>
-                )}
-
-
-                <Box>
-                    {success && (
-                        <Alert>Success</Alert>
-                    )}
-                    {error && (
-                        <Alert severity="error" >Success</Alert>
-                    )}
-                </Box>
-                <Button
-                    color={loading ? "secondary" : "primary"}
-                    startIcon={loading ? <CircularProgress size={20} /> : null}
-                    disableElevation
-                    onClick={relationship ? (e) => handleSubmit(e) : () => { }}
-                    type={(loading || relationship) ? "button" : "submit"}
-                    fullWidth variant="contained"
-                >{loading ? null : "Save"}</Button>
-            </Stack>
-        </form>
-    )
-}
-
-function SelectMultiple({ title, handleChange, value }) {
+export function SelectMultiple({ title, handleChange, value, name }) {
     useList({ name: title, effects: [title], take: 0, skip: 0 })
     const appContext = React.useContext(StateContext);
     const key = getEntity(title).nameKey
-    const data = appContext[\`\${title}List\`] || []
+    const data = (appContext[\`\${title}List\`] || [])
+
     return (
         <Grid container spacing={1} >
             <Grid item xs >
@@ -576,7 +749,7 @@ function SelectMultiple({ title, handleChange, value }) {
                     required
                     value={value}
                     options={data}
-                    getOptionsLabel={(o) => (o[key])}
+                    getOptionLabel={(o) => o[key]}
                     onChange={(e, v) => handleChange(v, title)}
                     renderInput={(params) => (
                         <TextField
@@ -597,11 +770,12 @@ function SelectMultiple({ title, handleChange, value }) {
 
 
 
-function SelectSingle({ title, handleChange, value, }) {
-    useList({ name: title, effects: [title], take: 0, skip: 0 })
+export function SelectSingle({ title, handleChange, value, name }) {
     const appContext = React.useContext(StateContext);
-    const key = getEntity(title).nameKey
     const data = appContext[\`\${title}List\`] || []
+    const key = getEntity(title).nameKey
+    const other = appContext[\`\${name}List\`] || []
+    useList({ name: title, effects: [title], take: 0, skip: 0 })
     return (
         <Grid container spacing={1} >
             <Grid item xs >
@@ -611,8 +785,20 @@ function SelectSingle({ title, handleChange, value, }) {
                     required
                     value={value}
                     options={data}
-                    getOptionsLabel={(o) => (o[key])}
+                    getOptionLabel={(o) => o[key]}
                     onChange={(e, v) => handleChange(v, title)}
+                    renderOption={(props, option, { selected }) => (
+                        <Box component="li" {...props}>
+                            <Checkbox
+                                size="small"
+                                sx={{ mr: 2, flexShrink: 0 }}
+                                checked={selected}
+                            />
+                            <span style={{ display: "flex", justifyContent: "space-between" }}>
+                                {option[key]}
+                            </span>
+                        </Box>
+                    )}
                     renderInput={(params) => (
                         <TextField
                             fullWidth
@@ -624,14 +810,102 @@ function SelectSingle({ title, handleChange, value, }) {
                 />
             </Grid>
             <Grid item xs={2} >
-                <AddDialog title={title}  />
+                <AddDialog title={title} />
             </Grid>
         </Grid>
 
     );
 }
 
+`
+                    , () => { })
+                fs.appendFile(`./${name}Project/${name}ReactApp/src/widgets/Loader.jsx`,
+                    `import CircularProgress from "@mui/material/CircularProgress"
+                    import Box from "@mui/material/Box"
+                    
+                    export function Loader() {
+                        return (
+                            <Box sx={{ minHeight: 40 }} >
+                                <CircularProgress />
+                            </Box>
+                        )
+                    }`
+                    , () => { })
 
+
+                fs.appendFile(`./${name}Project/${name}ReactApp/src/widgets/Detail.jsx`,
+                    `import * as React from "react";
+import Box from "@mui/material/Box"
+import Typography from "@mui/material/Typography"
+import Stack from "@mui/material/Stack"
+import Divider from "@mui/material/Divider"
+import LinearProgress from "@mui/material/LinearProgress"
+import { useItem, } from "../hooks/hooks";
+import { getEntity, getRelation, filterUnique, getRelations } from "../data/data";
+import Link from "@mui/material/Link"
+import { useHistory } from "react-router-dom";
+
+export function Detail({ name, relationship, }) {
+
+    const data = useItem({
+        name,
+        key: "id",
+    })
+
+    const entity = getEntity(name)
+    const relations = getRelations(name)
+
+
+
+    const entityData = data[name]
+    const { loading } = data;
+
+
+    const { push } = useHistory()
+    return (
+        <>
+            <Stack sx={styles["container"]} spacing={2} >
+                <Box sx={{ textAlign: "right" }} >
+                    <Link sx={{ mr: 2 }} onClick={() => push(\`/\`)} >Back Home</Link>
+                    <Link onClick={() => push(\`/\${name}\`)} >Add new {name}</Link>
+                </Box>
+                <Box sx={styles["header"]} >
+                    <Typography variant="h5" >{relationship || name} Detail</Typography>
+                    {loading && (
+                        <LinearProgress />
+                    )}
+                </Box>
+                {Boolean(entityData) && !Boolean(loading) && (
+                    <>
+                        {entity?.columns?.map((e, i) => {
+                            return <Box sx={{ mb: 2 }} key={i} >
+                                <Typography> <span style={{ fontWeight: "bold" }} >{e?.key}</span>  : {entityData[e.key]}</Typography>
+                            </Box>
+                        })}
+                    </>
+                )}
+                {!Boolean(entityData) && !Boolean(loading) && (
+                    <>
+                        {entity?.columns?.map((e, i) => {
+                            return <Stack spacing={3} sx={{ mb: 2, textAlign: "center", py: 3 }} key={i} >
+                                <Typography> Couldn't find item. It may have been deleted or you don't have a connection to the server</Typography>
+                                <Link onClick={() => push("/")} >Go back home </Link>
+                            </Stack>
+                        })}
+                    </>
+                )}
+                <Divider />
+                <>  {relations.filter(filterUnique).map((m, i) => {
+                    return <div key={i} >
+                        <Box sx={{ mb: 2 }} key={i} >
+                            <Typography> <span style={{ fontWeight: "bold" }} >{getRelation(m, name)}</span></Typography>
+                        </Box>
+                    </div>
+                })}</>
+            </Stack>
+        </>
+    )
+}
 
 const styles = {
     container: {
@@ -639,10 +913,10 @@ const styles = {
     },
     header: {
         bgcolor: "lightgray",
+        py: 1,
+        textAlign: "center",
         borderRadius: "4px",
         minHeight: 30,
-        textAlign: "center",
-        my:3
     },
     emptyDesc: {
         minHeight: "30vh",
@@ -657,9 +931,109 @@ const styles = {
     }
 }
 `
-                    , () => {
+                    , () => { })
 
-                    })
+                fs.appendFile(`./${name}Project/${name}ReactApp/src/widgets/Delete.jsx`,
+                    `import React from "react";
+                    import Typography from "@mui/material/Typography";
+                    import Box from "@mui/material/Box";
+                    import Popover from "@mui/material/Popover";
+                    import Alert from "@mui/material/Alert";
+                    import Link from "@mui/material/Link";
+                    import Button from "@mui/material/Button";
+                    
+                    import axiosInstance from "../store/axiosInstance";
+                    import { useDispatch, useItem } from "../hooks/hooks";
+                    
+                    
+                    export function Delete({ entity, eID, title }) {
+                        const [anchorEl, setAnchorEl] = React.useState(null);
+                        const dispatch = useDispatch()
+                    
+                    
+                        const handleClick = (event) => {
+                            event.stopPropagation()
+                            setAnchorEl(event.currentTarget);
+                        };
+                    
+                        const handleClose = (event) => {
+                            event.stopPropagation()
+                            setAnchorEl(null);
+                        };
+                    
+                        const open = Boolean(anchorEl);
+                        const id = open ? "simple-popover" : undefined;
+                    
+                        const [loading, setLoading] = React.useState(false);
+                        const [error, setError] = React.useState(false)
+                        const [success, setSuccess] = React.useState(false)
+                    
+                    
+                        const handleDelete = (event) => {
+                            event.stopPropagation()
+                            setLoading(true);
+                            setError(false)
+                            setSuccess(false)
+                            axiosInstance
+                                .delete(\`/\${entity}/\${eID}\`)
+                                .then(({ data }) => {
+                                    setSuccess(true);
+                                    setLoading(false)
+                                    setTimeout(() => {
+                                        dispatch({
+                                            type: "REMOVE_ENTITY",
+                                            payload: eID,
+                                            context: \`\${entity}List\`
+                                        })
+                                    }, 450)
+                                })
+                                .catch((e) => {
+                                    console.log(e);
+                                    setError(true);
+                                    setLoading(false)
+                                });
+                        };
+                    
+                    
+                        return (
+                            <>
+                                <Link sx={{ cursor: "pointer" }} onClick={handleClick} >Remove</Link>
+                                <Popover
+                                    id={id}
+                                    open={open}
+                                    anchorEl={anchorEl}
+                                    onClose={handleClose}
+                                    anchorOrigin={{
+                                        vertical: "bottom",
+                                        horizontal: "left",
+                                    }}
+                                >
+                                    <Box sx={{ p: 2 }}>
+                                        <Typography variant="h6" sx={{ mb: 1 }}  >
+                                            Delete {entity} {title}?
+                                        </Typography>
+                    
+                                        {error && (
+                                            <Alert severity="error" >
+                                                An error occured. Refresh this page and try again
+                                            </Alert>
+                                        )}
+                                        {success && (
+                                            <Alert severity="success" >
+                                                Item has been deleted
+                                            </Alert>
+                                        )}
+                                        <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }} >
+                                            <Button onClick={handleClose} >Cancel</Button>
+                                            <Button onClick={loading ? () => { } : handleDelete} variant="contained" disableElevation color="error"  >{loading ? "Deleting..." : "Delete"}</Button>
+                                        </Box>
+                                    </Box>
+                                </Popover>
+                            </>
+                        );
+                    }
+                    `, () => { })
+
                 fs.appendFile(`./${name}Project/${name}ReactApp/src/widgets/List.jsx`,
                     `import * as React from "react";
 import Box from "@mui/material/Box"
@@ -676,7 +1050,10 @@ import Chip from "@mui/material/Chip"
 import { useList } from "../hooks/hooks";
 import { getEntity } from "../data/data";
 import { StateContext } from "../store/store"
-import { useHistory } from "react-router-dom"
+import { Delete } from "./Delete";
+import { useHistory } from "react-router-dom";
+import Typography from "@mui/material/Typography";
+import { EditDialog } from "./Dialogs";
 
 export function List({ name }) {
     const appContext = React.useContext(StateContext)
@@ -688,9 +1065,8 @@ export function List({ name }) {
     const [rowsPerPage, setRowsPerPage] = React.useState(10);
 
     useList({
-        name, effects: [name], take: rowsPerPage, skip: (data || []).length
+        name, effects: [name, page, rowsPerPage], take: rowsPerPage, skip: (data || []).length
     })
-
 
     const entity = getEntity(name)
 
@@ -704,8 +1080,8 @@ export function List({ name }) {
         setPage(0);
     };
 
-    function createData(name, id, isNew) {
-        return { name, id, isNew };
+    function createData(name, id, isNew, isEdited) {
+        return { name, id, isNew, isEdited };
     }
 
 
@@ -713,24 +1089,32 @@ export function List({ name }) {
         createData(
             c[entity.columns[0]?.key],
             c.id,
-            c.isNew
+            c.isNew,
+            c.isEdited
         )
     );
 
     const emptyRows =
         page > 0 ? Math.max(0, (1 + page) * rowsPerPage - rows.length) : 0;
 
-
+    const { push } = useHistory()
     return (
         <div style={styles["container"]} >
             <Box sx={{ my: 2 }} >{entity?.EntityName}(s)</Box>
+
             <TableContainer sx={{ maxHeight: "60vh", overflow: "auto" }} component={Paper}>
-                <Table  aria-label="a dense table">
+                <Table aria-label="a dense table">
                     <TableHead>
                         <TableRow>
                             <TableCell sx={{ fontWeight: "bold" }} align="left">{entity?.nameKey}</TableCell>
                             <TableCell sx={{ fontWeight: "bold" }} align="left"></TableCell>
-
+                            <TableCell sx={{ fontWeight: "bold" }} align="left"></TableCell>
+                            {Boolean(rows?.filter(f => f?.isNew)?.length) && (
+                                <TableCell sx={{ fontWeight: "bold" }} align="left"></TableCell>
+                            )}
+                            {Boolean(rows?.filter(f => f?.isEdited)?.length) && (
+                                <TableCell sx={{ fontWeight: "bold" }} align="left"></TableCell>
+                            )}
                         </TableRow>
                     </TableHead>
                     <TableBody>
@@ -738,18 +1122,36 @@ export function List({ name }) {
                             .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                             .map((row, i) => (
                                 <TableRow
-                                onClick={() => push(\`/\${name}/\${row.id}\`)}
+                                    selected={window.location.pathname.includes(row.id)}
+                                    onClick={() => push(\`/\${name}/\${row.id}\`)}
                                     key={i}
                                     sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
                                 >
-                                    <TableCell component="th" scope="row">
+                                    <TableCell>
                                         {row.name}
                                     </TableCell>
-                                    <TableCell component="th" scope="row">
-                                    {row.isNew && (
-                                        <Chip label="New" size="small" color="success" ></Chip>
+                                    <TableCell>
+                                        <EditDialog id={row.id} name={name} link />
+                                    </TableCell>
+                                    <TableCell>
+                                        <Delete entity={name} title={row.name} eID={row.id} />
+                                    </TableCell>
+                                    {Boolean(rows?.filter(f => f?.isNew)?.length) && (
+                                        <TableCell>
+                                            {row.isNew && (
+                                                <Chip label="New" size="small" color="success" ></Chip>
+                                            )}
+                                        </TableCell>
                                     )}
-                                </TableCell>
+
+                                    {Boolean(rows?.filter(f => f?.isEdited)?.length) && (
+                                        <TableCell>
+                                            {row.isEdited && (
+                                                <Chip label="Updated" size="small" color="info" ></Chip>
+                                            )}
+                                        </TableCell>
+                                    )}
+
                                 </TableRow>
                             ))}
                         {!Boolean(rows.length) && loading && (
@@ -766,6 +1168,26 @@ export function List({ name }) {
                                     >
                                         <Box>
                                             <CircularProgress />
+                                        </Box>
+                                    </Box>
+                                </TableCell>
+                            </TableRow>
+                        )}
+
+                        {!Boolean(rows.length) && !loading && (
+                            <TableRow
+                                style={{
+                                    height: 33 * 5,
+                                }}
+                            >
+                                <TableCell colSpan={4}>
+                                    <Box
+                                        sx={{
+                                            textAlign: "center",
+                                        }}
+                                    >
+                                        <Box>
+                                            <Typography>There are 0 {name}(s)</Typography>
                                         </Box>
                                     </Box>
                                 </TableCell>
@@ -797,6 +1219,7 @@ export function List({ name }) {
     )
 }
 
+
 const styles = {
     container: {
         p: 2,
@@ -826,67 +1249,70 @@ const styles = {
             })
 
             fs.mkdir(`./${name}Project/${name}ReactApp/src/navigation`, () => {
-                fs.appendFile(`./${name}Project/${name}ReactApp/src/navigation/Navigation.jsx`, `
-import {BrowserRouter as Router, Route, Switch} from "react-router-dom"
-import Nav from "../components/Nav"
-import Grid from "@mui/material/Grid"
-import { getEntities } from '../data/data'
-import Box from "@mui/material/Box"
-import {Entity} from '../components/Entity'
-import {Home} from "../components/Home"
-import Typography from "@mui/material/Typography"
-import Button from "@mui/material/Button"
-const routes = [
-  { path: "/", component: <Home /> , isExact:true},
-]
-
-const entityRoutes = getEntities()
-.map(e => ({
-  path: \`/\${e.EntityName}\`,
-  component: <Entity name={e.EntityName} />,
-}))
-const combinedRoutes = (routes ||[]).concat(entityRoutes)
-
-  export default function Navigation() {
-      return (
-        <Router>
-      <Nav />
-        <Switch>
-        {combinedRoutes.map(({ isExact, path, component }, i) => (
-          <Route key={i} exact={Boolean(isExact)} path={path}>
-            {component}
-          </Route>
-        ))}
-        <Route path="**" component={FO4} />
-      </Switch>
-        </Router>
-      );
-    }
-  
-    const FO4 = () => {
-      const { push } = useHistory();
-      return (
-        <Box
-          sx={{
-            height: "100vh",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <Box>
-            <Typography variant="h6">Resource not found</Typography>
-            <Divider sx={{ my: 2 }} />
-            <Typography>Coming soon...</Typography>
-            <Button onClick={() => push("/")} variant="contained">
-              Back Home
-            </Button>
-          </Box>
-        </Box>
-      );
-    };
-    
-              `, () => { })
+                fs.appendFile(`./${name}Project/${name}ReactApp/src/navigation/Navigation.jsx`,
+                    `
+                import Nav from "../components/Nav"
+                import { getEntities } from '../data/data'
+                import Box from "@mui/material/Box"
+                import { Entity } from '../components/Entity'
+                import { Home } from "../components/Home"
+                
+                import Typography from "@mui/material/Typography"
+                import Button from "@mui/material/Button"
+                import {BrowserRouter as Router, Route, Switch} from "react-router-dom"
+                const routes = [
+                  { path: "/", component: <Home />, isExact: true },
+                
+                ]
+                
+                const entityRoutes = getEntities()
+                  .map(e => ({
+                    path: \`/\${e.EntityName}\`,
+                    component: <Entity name={e.EntityName} />,
+                  }))
+                const combinedRoutes = (routes || []).concat(entityRoutes)
+                
+                export default function Navigation() {
+                  return (
+                    <Router>
+                      <Nav />
+                      <Switch>
+                        {combinedRoutes.map(({ isExact, path, component }, i) => (
+                          <Route key={i} exact={Boolean(isExact)} path={path}>
+                            {component}
+                          </Route>
+                        ))}
+                        <Route path="**" component={FO4} />
+                      </Switch>
+                    </Router>
+                  );
+                }
+                
+                const FO4 = () => {
+                  const { push } = useHistory();
+                  return (
+                    <Box
+                      sx={{
+                        height: "100vh",
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Box>
+                        <Typography variant="h6">Resource not found</Typography>
+                        <Divider sx={{ my: 2 }} />
+                        <Typography>Coming soon...</Typography>
+                        <Button onClick={() => push("/")} variant="contained">
+                          Back Home
+                        </Button>
+                      </Box>
+                    </Box>
+                  );
+                };
+                
+                `
+                    , () => { })
 
             })
 
@@ -917,70 +1343,72 @@ const combinedRoutes = (routes ||[]).concat(entityRoutes)
         export default axiosInstance;
                 `, () => { })
 
-                fs.appendFile(`./${name}Project/${name}ReactApp/src/store/store.js`, `
-                import { createContext } from "react";
-        
-        export const initialState = {};
-        
-        export const StateContext = createContext(initialState);
-        
-        export const reducer = (state, action) => {
-            switch (action.type) {
-                case "ADD_ENTITIES":
-                    return {
-                        ...state,
-                        [action.context]: action.payload,
-                    };
-                case "ADD_ENTITY":
-                    const uiio = state[action.context] || [];
-                    uiio.unshift(action.payload);
-                    return {
-                        ...state,
-                        [action.context]: uiio,
-                    };
-                case "CLEAR_ENTITIES":
-                    return {
-                        ...state,
-                        [action.context]: null,
-                    };
-                case "REMOVE_ENTITY":
-                    const repo = state[action.context] || [];
-                    const idx = repo.indexOf(action.payload);
-                    if (idx > -1) {
-                        repo.splice(idx, 1);
-                    }
-                    return {
-                        ...state,
-                        [action.context]: repo,
-                    };
-        
-                case "UPDATE_ENTITY":
-                    const existing = state[action.context] || [];
-                    const i = existing.indexOf(action.prev);
-                    if (i > -1) {
-                        existing.splice(i, 1);
-                        existing.push(action.payload);
-                    }
-                    return {
-                        ...state,
-                        [action.payload]: existing,
-                    };
-        
-                case "RESET":
-                    return {}
-        
-                default:
-                    return {
-                        ...state,
-                    };
+                fs.appendFile(`./${name}Project/${name}ReactApp/src/store/store.js`,
+                    `import { createContext } from "react";
+
+export const initialState = {};
+
+export const StateContext = createContext(initialState);
+
+export const reducer = (state, action) => {
+    switch (action.type) {
+        case "ADD_ENTITIES":
+            return {
+                ...state,
+                [action.context]: action.payload,
+            };
+        case "ADD_ENTITY":
+            const uiio = state[action.context] || [];
+            uiio.unshift(action.payload);
+            return {
+                ...state,
+                [action.context]: uiio,
+            };
+        case "CLEAR_ENTITIES":
+            return {
+                ...state,
+                [action.context]: null,
+            };
+        case "REMOVE_ENTITY":
+            const repo = state[action.context] || [];
+            const item = repo.filter(r => r.id === action.payload)[0]
+            const idx = repo.indexOf(item);
+            if (idx > -1) {
+                repo.splice(idx, 1);
             }
-        };
-                `, () => { })
+            return {
+                ...state,
+                [action.context]: repo,
+            };
+
+        case "UPDATE_ENTITY":
+            let existing = state[action.context] || [];
+            const toUpdate = existing.filter(r => r.id === action.id)[0]
+            const index = existing.indexOf(toUpdate);
+            if (index > -1) {
+                existing[index] = action.payload
+            }
+            return {
+                ...state,
+                [action.payload]: existing,
+            };
+
+        case "RESET":
+            return {}
+
+        default:
+            return {
+                ...state,
+            };
+    }
+};`
+                    , () => { })
             })
 
 
 
             fs.appendFile(`./${name}Project/${name}ReactApp/src/index.css`,
+
                 `
               body {
                   margin: 0;
