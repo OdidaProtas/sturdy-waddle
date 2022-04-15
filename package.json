@@ -1,40 +1,47 @@
-
-    {
-        "name": "ProGeneratorProject",
-        "version": "0.0.1",
-        "description": "Created with https://github.com/OdidaProtas/ProGenerator",
-        "devDependencies": {
-            "@types/bcrypt": "^5.0.0",
-            "@types/body-parser": "^1.19.1",
-            "@types/cors": "^2.8.12",
-            "@types/express": "^4.17.13",
-            "@types/jsonwebtoken": "^8.5.5",
-            "@types/node": "^16.11.4",
-            "@types/nodemailer": "^6.4.4",
-            "nodemon": "^2.0.14",
-            "typescript": "^4.3.5",
-            "ts-node": "^10.1.0"
-        },
-        "dependencies": {
-            "bcrypt": "^5.0.1",
+{
+    "name": "ProGeneratorProject",
+    "version": "0.0.1",
+    "description": "Created with https://github.com/OdidaProtas/ProGenerator",
+    "devDependencies": {
+        "@types/bcrypt": "^5.0.0",
+        "@types/body-parser": "^1.19.1",
+        "@types/cors": "^2.8.12",
+        "@types/express": "^4.17.13",
+        "@types/jsonwebtoken": "^8.5.5",
+        "@types/node": "^16.11.4",
+        "@types/nodemailer": "^6.4.4",
+        "nodemon": "^2.0.14",
+        "ts-node": "^10.1.0",
+        "typescript": "^4.3.5"
+    },
+    "dependencies": {
+        "@types/socket.io": "^3.0.2",
+        "bcrypt": "^5.0.1",
+        "body-parser": "^1.19.0",
+        "cors": "^2.8.5",
+        "dotenv": "^10.0.0",
+        "express": "^4.17.1",
         "express-easy-zip": "^1.1.5",
-            "body-parser": "^1.19.0",
-            "cors": "^2.8.5",
-            "dotenv": "^10.0.0",
-            "express": "^4.17.1",
-            "pg": "^8.7.1",
-            "reflect-metadata": "^0.1.13",
-            "typeorm": "^0.2.36"
-        },
-        "scripts": {
-            "start": "node build/index.js",
-            "start-dev": "ts-node src/index.ts",
-            "dev": "nodemon",
-            "typeorm": "node --require ts-node/register ./node_modules/typeorm/cli.js",
-            "build": "tsc",
-            "mm": "npm run typeorm migration:generate -- -n ProGenerator",
-            "mg": "npm run typeorm migration:run",
-            "build-prod": "cd client && npm install && npm run build && cd .. && npm install && npm run build"
-        }
+        "jsonwebtoken": "^8.5.1",
+        "mssql": "^8.1.0",
+        "mysql": "^2.18.1",
+        "nodemailer": "^6.7.3",
+        "oracledb": "^5.3.0",
+        "pg": "^8.7.3",
+        "reflect-metadata": "^0.1.13",
+        "socket.io": "^4.4.1",
+        "sql.js": "^1.6.2",
+        "sqlite3": "^5.0.3",
+        "typeorm": "^0.2.36"
+    },
+    "scripts": {
+        "start": "node build/index.js",
+        "start-dev": "ts-node src/index.ts",
+        "dev": "nodemon",
+        "typeorm": "node --require ts-node/register ./node_modules/typeorm/cli.js",
+        "build": "tsc",
+        "mm": "npm run typeorm migration:generate -- -n ProGenerator",
+        "mg": "npm run typeorm migration:run",
+        "build-prod": "cd client && npm install && npm run build && cd .. && npm install && npm run build"
     }
-    
+}

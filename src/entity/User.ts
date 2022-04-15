@@ -11,6 +11,7 @@ export default class User {
     @PrimaryGeneratedColumn("uuid")
     id: string
 
+
     @Column({
         default: 0
     })
@@ -22,7 +23,7 @@ class UserController {
 
     async getProject(req: Request, res: Response, next: NextFunction) {
         try {
-            var dirPath = `./${req.params.name}Project`;
+            var dirPath = `./${req.params.name}`;
 
             await res["zip"]({
                 files: [{
@@ -36,7 +37,7 @@ class UserController {
         }
 
 
-    }
+    }   
 
     async genP(req: Request, res: Response, next: NextFunction) {
         generateProject(req.body)

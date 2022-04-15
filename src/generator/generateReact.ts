@@ -1,9 +1,9 @@
 import * as fs from "fs"
 
-export default function ({ name, entities, relations }) {
-    fs.mkdir(`./${name}Project/${name}ReactApp`, () => {
-        fs.mkdir(`./${name}Project/${name}ReactApp/src`, () => {
-            fs.appendFile(`./${name}Project/${name}ReactApp/src/App.css`,
+export default function ({ name, entities, relations, project_id }) {
+    fs.mkdir(`./${project_id}/${name}Project/${name}ReactApp`, () => {
+        fs.mkdir(`./${project_id}/${name}Project/${name}ReactApp/src`, () => {
+            fs.appendFile(`./${project_id}/${name}Project/${name}ReactApp/src/App.css`,
                 `.App {
         text-align: center;
     }
@@ -49,8 +49,8 @@ export default function ({ name, entities, relations }) {
     `
                 , () => { })
 
-            fs.mkdir(`./${name}Project/${name}ReactApp/src/hooks`, () => {
-                fs.appendFile(`./${name}Project/${name}ReactApp/src/hooks/hooks.js`,
+            fs.mkdir(`./${project_id}/${name}Project/${name}ReactApp/src/hooks`, () => {
+                fs.appendFile(`./${project_id}/${name}Project/${name}ReactApp/src/hooks/hooks.js`,
                     `import * as React from "react";
                 import axiosInstance from "../store/axiosInstance"
                 import { useParams } from "react-router-dom";
@@ -137,12 +137,12 @@ export default function ({ name, entities, relations }) {
                     , () => { })
             })
 
-            fs.mkdir(`./${name}Project/${name}ReactApp/src/data`, (
+            fs.mkdir(`./${project_id}/${name}Project/${name}ReactApp/src/data`, (
             ) => {
-                fs.appendFile(`./${name}Project/${name}ReactApp/src/data/data.js`, `
+                fs.appendFile(`./${project_id}/${name}Project/${name}ReactApp/src/data/data.js`, `
         
       const relations = [${relations.map((r: any, i) => `{left:"${r.left}", right:"${r.right}", type:"${r.type}"}`)}]
-      const entities = [${entities.map((e: any) => `{EntityName:"${e.EntityName}", nameKey: "${e.columns[0].key}" ,columns:[${e.columns.map((c: any) => `{key:"${c.key}", nullable:${c.nullable}, type:"${c.type}"}`)}]}`)}]
+      const entities = [${entities.map((e: any) => `{EntityName:"${e.EntityName}", nameKey: "${e.columns.filter((f: any) => f.displayKey)[0]?.key || e.columns[0].key}" ,columns:[${e.columns.map((c: any) => `{key:"${c.key}", nullable:${c.nullable}, type:"${c.type}"}`)}]}`)}]
       
       export function getEntities() {
           return entities
@@ -184,9 +184,9 @@ export default function ({ name, entities, relations }) {
             })
 
 
-            fs.mkdir(`./${name}Project/${name}ReactApp/src/components`, (
+            fs.mkdir(`./${project_id}/${name}Project/${name}ReactApp/src/components`, (
             ) => {
-                fs.appendFile(`./${name}Project/${name}ReactApp/src/components/Nav.jsx`,
+                fs.appendFile(`./${project_id}/${name}Project/${name}ReactApp/src/components/Nav.jsx`,
                     `import * as React from "react";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
@@ -211,7 +211,7 @@ export default function Nav() {
 }
 `
                     , () => { })
-                fs.appendFile(`./${name}Project/${name}ReactApp/src/components/Entity.jsx`,
+                fs.appendFile(`./${project_id}/${name}Project/${name}ReactApp/src/components/Entity.jsx`,
                     `import * as React from "react";
                 import Grid from "@mui/material/Grid"
                 import {List} from "../widgets/List"
@@ -259,7 +259,7 @@ export default function Nav() {
                 }
                 `
                     , () => { })
-                fs.appendFile(`./${name}Project/${name}ReactApp/src/components/Home.jsx`,
+                fs.appendFile(`./${project_id}/${name}Project/${name}ReactApp/src/components/Home.jsx`,
                     `import logo from "../logo.svg"
                 import Container from "@mui/material/Container"
                 import Box from "@mui/material/Box"
@@ -332,7 +332,7 @@ export default function Nav() {
                 }`
                     , () => { })
 
-                fs.appendFile(`./${name}Project/${name}ReactApp/src/components/Auth.jsx`,
+                fs.appendFile(`./${project_id}/${name}Project/${name}ReactApp/src/components/Auth.jsx`,
                     `import * as React from "react";
 import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
@@ -441,9 +441,9 @@ const styles = {
             })
 
 
-            fs.mkdir(`./${name}Project/${name}ReactApp/src/widgets`, (
+            fs.mkdir(`./${project_id}/${name}Project/${name}ReactApp/src/widgets`, (
             ) => {
-                fs.appendFile(`./${name}Project/${name}ReactApp/src/widgets/Dialog.jsx`,
+                fs.appendFile(`./${project_id}/${name}Project/${name}ReactApp/src/widgets/Dialog.jsx`,
 
                     `
 import React from "react"
@@ -503,7 +503,7 @@ export function EditDialog({ name, title, link, id }) {
                     , () => {
 
                     })
-                fs.appendFile(`./${name}Project/${name}ReactApp/src/widgets/Form.jsx`,
+                fs.appendFile(`./${project_id}/${name}Project/${name}ReactApp/src/widgets/Form.jsx`,
                     `import * as React from "react";
                 import Box from "@mui/material/Box"
                 import Typography from "@mui/material/Typography"
@@ -722,7 +722,7 @@ export function EditDialog({ name, title, link, id }) {
 
                     })
 
-                fs.appendFile(`./${name}Project/${name}ReactApp/src/widgets/Select.jsx`,
+                fs.appendFile(`./${project_id}/${name}Project/${name}ReactApp/src/widgets/Select.jsx`,
                     `import * as React from "react";
 import TextField from "@mui/material/TextField"
 import Grid from "@mui/material/Grid"
@@ -819,7 +819,7 @@ export function SelectSingle({ title, handleChange, value, name }) {
 
 `
                     , () => { })
-                fs.appendFile(`./${name}Project/${name}ReactApp/src/widgets/Loader.jsx`,
+                fs.appendFile(`./${project_id}/${name}Project/${name}ReactApp/src/widgets/Loader.jsx`,
                     `import CircularProgress from "@mui/material/CircularProgress"
                     import Box from "@mui/material/Box"
                     
@@ -833,7 +833,7 @@ export function SelectSingle({ title, handleChange, value, name }) {
                     , () => { })
 
 
-                fs.appendFile(`./${name}Project/${name}ReactApp/src/widgets/Detail.jsx`,
+                fs.appendFile(`./${project_id}/${name}Project/${name}ReactApp/src/widgets/Detail.jsx`,
                     `import * as React from "react";
 import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
@@ -933,7 +933,7 @@ const styles = {
 `
                     , () => { })
 
-                fs.appendFile(`./${name}Project/${name}ReactApp/src/widgets/Delete.jsx`,
+                fs.appendFile(`./${project_id}/${name}Project/${name}ReactApp/src/widgets/Delete.jsx`,
                     `import React from "react";
                     import Typography from "@mui/material/Typography";
                     import Box from "@mui/material/Box";
@@ -1034,7 +1034,7 @@ const styles = {
                     }
                     `, () => { })
 
-                fs.appendFile(`./${name}Project/${name}ReactApp/src/widgets/List.jsx`,
+                fs.appendFile(`./${project_id}/${name}Project/${name}ReactApp/src/widgets/List.jsx`,
                     `import * as React from "react";
 import Box from "@mui/material/Box"
 import Paper from "@mui/material/Paper"
@@ -1248,8 +1248,8 @@ const styles = {
                     })
             })
 
-            fs.mkdir(`./${name}Project/${name}ReactApp/src/navigation`, () => {
-                fs.appendFile(`./${name}Project/${name}ReactApp/src/navigation/Navigation.jsx`,
+            fs.mkdir(`./${project_id}/${name}Project/${name}ReactApp/src/navigation`, () => {
+                fs.appendFile(`./${project_id}/${name}Project/${name}ReactApp/src/navigation/Navigation.jsx`,
                     `
                 import Nav from "../components/Nav"
                 import { getEntities } from '../data/data'
@@ -1317,8 +1317,8 @@ const styles = {
             })
 
 
-            fs.mkdir(`./${name}Project/${name}ReactApp/src/store`, () => {
-                fs.appendFile(`./${name}Project/${name}ReactApp/src/store/axiosInstance.js`, `
+            fs.mkdir(`./${project_id}/${name}Project/${name}ReactApp/src/store`, () => {
+                fs.appendFile(`./${project_id}/${name}Project/${name}ReactApp/src/store/axiosInstance.js`, `
         import axios from "axios";
         const endpoint = "http://localhost:7072";
         
@@ -1343,7 +1343,7 @@ const styles = {
         export default axiosInstance;
                 `, () => { })
 
-                fs.appendFile(`./${name}Project/${name}ReactApp/src/store/store.js`,
+                fs.appendFile(`./${project_id}/${name}Project/${name}ReactApp/src/store/store.js`,
                     `import { createContext } from "react";
 
 export const initialState = {};
@@ -1407,7 +1407,7 @@ export const reducer = (state, action) => {
 
 
 
-            fs.appendFile(`./${name}Project/${name}ReactApp/src/index.css`,
+            fs.appendFile(`./${project_id}/${name}Project/${name}ReactApp/src/index.css`,
 
                 `
               body {
@@ -1425,7 +1425,7 @@ export const reducer = (state, action) => {
                 }`
                 , () => { })
 
-            fs.appendFile(`./${name}Project/${name}ReactApp/src/App.jsx`,
+            fs.appendFile(`./${project_id}/${name}Project/${name}ReactApp/src/App.jsx`,
                 `
   import './App.css'
   import { useReducer } from "react";
@@ -1447,7 +1447,7 @@ export const reducer = (state, action) => {
               `
                 , () => { })
 
-            fs.appendFile(`./${name}Project/${name}ReactApp/src/main.jsx`,
+            fs.appendFile(`./${project_id}/${name}Project/${name}ReactApp/src/main.jsx`,
                 `
 import React from "react"
 import ReactDOM from "react-dom"
@@ -1462,7 +1462,7 @@ ReactDOM.render(
   )`
                 , () => { })
 
-            fs.appendFile(`./${name}Project/${name}ReactApp/src/logo.svg`,
+            fs.appendFile(`./${project_id}/${name}Project/${name}ReactApp/src/logo.svg`,
                 `
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 841.9 595.3">
       <g fill="#61DAFB">
@@ -1481,7 +1481,7 @@ ReactDOM.render(
 
 
 
-    fs.appendFile(`./${name}Project/${name}ReactApp/.gitignore`,
+    fs.appendFile(`./${project_id}/${name}Project/${name}ReactApp/.gitignore`,
         `
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
@@ -1492,7 +1492,7 @@ export default defineConfig({
 })
         `, () => { })
 
-    fs.appendFile(`./${name}Project/${name}ReactApp/vite.config.js`,
+    fs.appendFile(`./${project_id}/${name}Project/${name}ReactApp/vite.config.js`,
         `
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
@@ -1503,7 +1503,7 @@ export default defineConfig({
 })
         `, () => { })
 
-    fs.appendFile(`./${name}Project/${name}ReactApp/index.html`,
+    fs.appendFile(`./${project_id}/${name}Project/${name}ReactApp/index.html`,
         `
         <!DOCTYPE html>
         <html lang="en">
@@ -1524,7 +1524,7 @@ export default defineConfig({
         `, () => { })
 
 
-    fs.appendFile(`./${name}Project/${name}ReactApp/package.json`,
+    fs.appendFile(`./${project_id}/${name}Project/${name}ReactApp/package.json`,
         `
         {
             "name": "${name}Project",
