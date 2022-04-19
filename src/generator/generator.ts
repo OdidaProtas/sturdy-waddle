@@ -465,7 +465,7 @@ ${entities.map((e: any) => {
             cors("*" as any),${includeAuth ? `\nthis.verifyTokenMiddleWare,` : ""}\n${includeWebsockets ? `this.socketMiddleWare,` : ""}\n${includeEmail ? `this.emailMiddleWare,` : ""}\n${includeMpesa ? `this.mpesaMiddleWare,` : ""}
             ]
           }${includeAuth ?
-                            `\n\n
+                            `\n
     async verifyTokenMiddleWare(request: Request, response: Response, next: NextFunction) {
         const token =
         request.body.token ||
