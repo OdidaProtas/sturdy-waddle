@@ -1,6 +1,6 @@
 import * as fs from "fs"
 import generateReact from "./generateReact"
-export function generateProject({ name, entities, database, relations, includeReact, includeAuth, includeDatabase, desc, includeEmail, includeWebsockets, project_id, userModel, includeModels }) {
+export function generateProject({ name, entities, database, relations, includeReact, includeAuth, includeDatabase, desc, includeEmail, includeWebsockets, project_id, userModel, includeModels, includeMpesa }) {
 
 
 
@@ -97,7 +97,7 @@ ${entities.map((e: any) => {
         "cors": "^2.8.5",
         "dotenv": "^10.0.0",
         "reflect-metadata": "^0.1.13",\n${includeAuth ? `"jsonwebtoken": "^8.5.1",` : ""}\n${database === "mssql" ? `"mssql": "^8.1.0",` : ""}\n${(database === "mysql" || database === "mariadb") ? `"mysql": "^2.18.1",` : ""}\n${includeEmail ? `"nodemailer": "^6.7.3",` : ""}\n${(database === "postgres" || database === "cockroach") ? `"pg": "^8.7.3",` : ""}\n${includeWebsockets ? `"socket.io": "^4.4.1",` : ""}\n${database === "sqljs" ? `"sql.js": "^1.6.2",` : ""}\n${database === "sqlite" ? `"sqlite3": "^5.0.3",` : ""}
-        "express": "^4.17.1",
+        "express": "^4.17.1",\n${includeDatabase ? `"axios": "^0.26.1",` : ""}
         "typeorm": "^0.2.36"
 },
 "scripts": {
@@ -130,8 +130,8 @@ ${entities.map((e: any) => {
 
                     fs.appendFile(`./${project_id}/${name}Project/ormconfig.js`,
                         `
-    const ext = process.env.FILE_EXTENSION;
-    const app = process.env.APP_FOLDER;
+    const ext = process.env.ENVIRONMENT === "debug" ? "src" : "build";
+    const app = process.env.ENVIRONMENT === "debug" ? "js": "ts";
     
     module.exports = {
         type: "${database}",
@@ -187,18 +187,165 @@ ${entities.map((e: any) => {
                 })
                 if (includeAuth) {
                     fs.mkdir(`./${project_id}/${name}Project/src/controller`, () => {
-                        fs.appendFile(`./${project_id}/${name}Project/src/middleware/AuthController.ts`, `
+
+                        fs.appendFile(`./${project_id}/${name}Project/src/controller/Mpesa.ts`, `
+
+                        import { NextFunction, Request, Response } from "express";
+                        import axios from "axios";
+                        import createRoute from "../helpers/createRoute";
+                        
+                        const mpesaAuthUrl = process.env.MPESA_AUTH_URL;
+                        const darajaSandBoxUrl = process.env.STK_PUSH_URL;
+                        
+                        
+                        export default class Mpesa {
+                        
+                            static async stkPush(auth: any, phone: string, amount: any) {
+                        
+                                let timestamp = getTimestamp();
+                                let bsShortCode = process.env.MPESA_SHORT_CODE;
+                                let passkey = process.env.MPESA_PASS_KEY;
+                        
+                                let formattedPass = \`\${bsShortCode}\${passkey}\${timestamp}\`;
+                                let password = Buffer.from(formattedPass).toString('base64');
+                        
+                                let type = "CustomerPayBillOnline";
+                        
+                                let [partyA, formatErr] = formatPhoneNumber(phone);
+                        
+                                if (formatErr) {
+                                    return 1
+                                }
+                                let partyB = process.env.MPESA_SHORT_CODE;
+                                let callBackUrl = \`\${process.env.HOST_URL}/MpesaHook\`;
+                        
+                                let accountReference = "test";
+                                let transactionDesc = "test";
+                        
+                                let valAmount = validateAmount(parseInt(amount));
+                        
+                        
+                                let data = {
+                                    BusinessShortCode: bsShortCode,
+                                    Password: password,
+                                    Timestamp: timestamp,
+                                    TransactionType: type,
+                                    Amount: valAmount,
+                                    PartyA: partyA,
+                                    PartyB: partyB,
+                                    PhoneNumber: partyA,
+                                    AccountReference: accountReference,
+                                    TransactionDesc: transactionDesc,
+                                    CallBackURL: callBackUrl
+                                }
+                        
+                        
+                                let config = {
+                                    headers: {
+                                        Authorization: auth,
+                                    }
+                                }
+                        
+                                try {
+                                    await axios.post(darajaSandBoxUrl, data, config).then(res => {
+                                        return [res.data, null]
+                        
+                                    }).catch(e => {
+                                        return [null, e['response']['statusText']];
+                                    })
+                        
+                                } catch (e) {
+                                    return [null, e];
+                                }
+                        
+                        
+                            }
+                        
+                            static async requestPayment(phone: any, amount: any) {
+                        
+                                let consumerKey = process.env.CONSUMER_KEY;
+                                let consumerSecret = process.env.CONSUMER_SECRET;
+                        
+                                let buffer = Buffer.from(consumerKey + ":" + consumerSecret);
+                        
+                                let auth = \`Basic \${buffer.toString("base64")}\`;
+                        
+                                try {
+                                    let { data } = await axios.get(mpesaAuthUrl, {
+                                        "headers": {
+                                            "Authorization": auth
+                                        }
+                                    })
+                        
+                                    const mpesa_access_token = data['access_token'];
+                        
+                                    return this.stkPush(mpesa_access_token, phone, amount);
+                        
+                                } catch (e) {
+                                    return [null, e]
+                                }
+                            }
+                        
+                            async webHook(request: Request, response: Response, next: NextFunction) {
+                                const { Body: { stkCallback: { CheckoutRequestID } } } = request.body;
+                                request["io"].emit("mpesa-hook", request.body)
+                                let message = {
+                                    "ResponseCode": "00000000",
+                                    "ResponseDesc": "success"
+                                }
+                                response.json(message);
+                            }
+                        }
+                        
+                        
+                        export const MpesaRoutes = [
+                            createRoute("get", "/MpesaHook", Mpesa, "webHook")
+                        ]
+                        
+                        const formatPhoneNumber = (phoneNumber: string) => {
+                            let formatted = parseInt(\`254\${ phoneNumber.substring(1) } \`);
+                            if (numberIsValid(formatted)) return [formatted, null];
+                            return [null, true]
+                        }
+                        
+                        
+                        const numberIsValid = (formatted: any) => {
+                            let _pattern = /^(?:254|\+254|0)?(7(?:(?:[129][0-9])|(?:0[0-8])|(4[0-1]))[0-9]{6})$/;
+                            return _pattern.test(formatted);
+                        }
+                        
+                        const validateAmount = (amount: number) => {
+                            if (isNaN(amount) || amount < 1) return [amount, null]
+                            return [null, true];
+                        }
+                        
+                        function getTimestamp() {
+                            let date = new Date();
+                            function pad2(n: number) {
+                                return (n < 10 ? '0' : '') + n;
+                            }
+                            return date.getFullYear() +
+                                pad2(date.getMonth() + 1) +
+                                pad2(date.getDate()) +
+                                pad2(date.getHours()) +
+                                pad2(date.getMinutes()) +
+                                pad2(date.getSeconds());
+                        }
+                        `, () => { })
+
+
+                        fs.appendFile(`./${project_id}/${name}Project/src/controller/Auth.ts`, `
                         
     import { NextFunction, Request, Response } from "express";
-    import { getRepository } from "typeorm";
-    import User from "../entity/User";
+    import { getRepository } from "typeorm";X
+    import ${userModel}} from "../entity/${userModel}";
     import useTryCatch from "../helpers/useTryCatch";
     import { compareSync, hashSync } from "bcrypt";
     import { sign } from "jsonwebtoken";
     import createRoute from "../helpers/createRoute
     export class AuthController{
     
-        private userRepository = getRepository(User)
+        private userRepository = getRepository(${userModel})
     
     async login(req: Request, res: Response, next: NextFunction) {
         const [user, error] = await useTryCatch(
@@ -211,7 +358,7 @@ ${entities.map((e: any) => {
           }
           else res.status(403)
         } catch (e) {
-          res.status(403)
+          res.status(403).send(e)
         }
       }
     
@@ -220,9 +367,17 @@ ${entities.map((e: any) => {
             res.status(403).json({error:"email and password required"})
           } else {
             req.body["password"] = bcrypt.hashSync(req.body.password, 8);
+            const [data, error] = await useTryCatch(this.userRepository.save(req.body))
+            if(data) return sign(data, process.env.APP_SECRET)
+            else res.status(403).send(e)
           }
       }
     }
+
+    const AuthRoutes = [
+        createRoute("post", "/Login", AuthController. "login"),
+        createRoute("post", "/Register", AuthController. "register")
+    ]
                         
                         `, () => { })
                     })
@@ -243,8 +398,14 @@ ${entities.map((e: any) => {
                          const app = express();
                          const http = require("http");
                          const server = http.createServer(app)
+                         const io = require("socket.io")(server, {
+                            cors: {
+                              origin: "*",
+                              methods: ["GET", "POST"],
+                            },
+                          });
                          middleware.forEach((middleWare: any) => {
-                             app.use((req, res, next) => middleWare(req, res, next, { server, app }))
+                             app.use((req, res, next) => middleWare(req, res, next, { server, app, io }))
                         })
                         routes.concat(admin || []).concat(docs || []).forEach((route: any) => {
                             (app as any)[route.method](
@@ -292,13 +453,16 @@ ${entities.map((e: any) => {
         import { NextFunction, Request, Response } from "express";
         import * as cors from "cors";
         import * as bodyParser from "body-parser";${includeAuth ? `\nimport * as jwt from "jsonwebtoken";` : ""}\n${includeEmail ? `import * as nodemailer from "nodemailer";` : ""}
-    
+    ${includeMpesa ? `
+    import Mpesa from "../controller/Mpesa.ts
+    ` : ""}
+
         export default class MiddleWare {
             
           apply() {
             return [
             bodyParser.json(),
-            cors("*" as any),${includeAuth ? `\nthis.verifyTokenMiddleWare,` : ""}\n${includeWebsockets ? `this.socketMiddleWare,` : ""}\n${includeEmail ? `this.emailMiddleWare,` : ""}
+            cors("*" as any),${includeAuth ? `\nthis.verifyTokenMiddleWare,` : ""}\n${includeWebsockets ? `this.socketMiddleWare,` : ""}\n${includeEmail ? `this.emailMiddleWare,` : ""}\n${includeMpesa ? `this.mpesaMiddleWare,` : ""}
             ]
           }${includeAuth ?
                             `\n\n
@@ -341,20 +505,21 @@ ${entities.map((e: any) => {
     
     `: ""}${includeWebsockets ?
                             `\n
-        async socketMiddleWare(request: Request, response: Response, next: NextFunction, {server}:any) {
-            const io = require("socket.io")(server, {
-                cors: {
-                  origin: "*",
-                  methods: ["GET", "POST"],
-                },
-              });
-              if (!Boolean(request["websocket"])) {
-                request["websocket"] = io;
-              }
+        async socketMiddleWare(request: Request, response: Response, next: NextFunction, {io}:any) {
+                req["io] = io
               next();
           }
           
           `: ""}
+
+
+          ${includeMpesa ? `\n
+          async mpesaMiddleWare(request: Request, response: Response, next: NextFunction) {
+            const mpesa = Mpesa
+            request["requestPayment"] = Mpesa.requestPayment
+            next();
+          }
+          ` : ""}
           
             
           async pass(request: Request, response: Response, next: NextFunction) {
@@ -517,7 +682,7 @@ ${entities.map((e: any) => {
         ${relations.filter((r: any) => ((r.left === EntityName) || (r.right === EntityName))).map((c: any) => c.left === EntityName ? c.right : c.left).filter((f: any, i: any, s: any) => s.indexOf(f) === i).map((c: any) => {
                                 return (
                                     `
-createRoute("get", ${'"'}/${EntityName}by${c}/:id${'"'}, ${EntityName}Controller, "${EntityName.toLowerCase()}by${c}"),                       
+createRoute("get", ${'"'}/${EntityName}By${c}/:id${'"'}, ${EntityName}Controller, "${EntityName.toLowerCase()}by${c}"),                       
                 `
                                 )
                             })}
@@ -536,12 +701,11 @@ createRoute("get", ${'"'}/${EntityName}by${c}/:id${'"'}, ${EntityName}Controller
 ${entities.map((e: any) => `
 import { ${e.EntityName}Routes } from "./entity/${e.EntityName}";
 `).join("\n")}
-
 import registerRoutes from "./helpers/registerRoutes";
-
+${includeMpesa ? `import { MpesaRoutes } from "./controller/Mpesa"` : ""}
 
 export const Routes = registerRoutes(
-  [
+  [${includeMpesa ? `\nMpesaRoutes,` : ""}
       ${entities.map((e: any) => `${e.EntityName}Routes`)}
   ]
 )
