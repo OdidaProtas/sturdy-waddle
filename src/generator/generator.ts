@@ -337,15 +337,15 @@ ${entities.map((e: any) => {
                         fs.appendFile(`./${project_id}/${name}Project/src/controller/Auth.ts`, `
                         
     import { NextFunction, Request, Response } from "express";
-    import { getRepository } from "typeorm";X
-    import ${userModel}} from "../entity/${userModel}";
+    import { getRepository } from "typeorm";
+    import ${userModel.EntityName} from "../entity/${userModel.EntityName}";
     import useTryCatch from "../helpers/useTryCatch";
     import { compareSync, hashSync } from "bcrypt";
     import { sign } from "jsonwebtoken";
-    import createRoute from "../helpers/createRoute
+    import createRoute from "../helpers/createRoute"
     export class AuthController{
     
-        private userRepository = getRepository(${userModel})
+        private userRepository = getRepository(${userModel.EntityName})
     
     async login(req: Request, res: Response, next: NextFunction) {
         const [user, error] = await useTryCatch(
@@ -366,17 +366,17 @@ ${entities.map((e: any) => {
         if (!Boolean(req.body.password) || !Boolean(req.body.email)) {
             res.status(403).json({error:"email and password required"})
           } else {
-            req.body["password"] = bcrypt.hashSync(req.body.password, 8);
+            req.body["password"] = hashSync(req.body.password, 8);
             const [data, error] = await useTryCatch(this.userRepository.save(req.body))
             if(data) return sign(data, process.env.APP_SECRET)
-            else res.status(403).send(e)
+            else res.status(403).json(error)
           }
       }
     }
 
-    const AuthRoutes = [
-        createRoute("post", "/Login", AuthController. "login"),
-        createRoute("post", "/Register", AuthController. "register")
+    export const AuthRoutes = [
+        createRoute("post", "/Login", AuthController, "login"),
+        createRoute("post", "/Register", AuthController, "register")
     ]
                         
                         `, () => { })
@@ -434,7 +434,7 @@ ${entities.map((e: any) => {
                         });
                 
                          app.get("/", (req, res) => {
-                             res.json("index.html");
+                             res.json(" ${name}  Server running on port: " + port);
                         });
                 
                         server.listen(port);
@@ -442,7 +442,7 @@ ${entities.map((e: any) => {
                          console.log("Server has started on port: " + port);
                     
                          ${includeDatabase ? `})
-                         .catch((error) => console.log(error));}}`: ""}
+                         .catch((error) => console.log(error));}}`: "}}"}
                      
                 `, (err) => {
 
@@ -454,7 +454,7 @@ ${entities.map((e: any) => {
         import * as cors from "cors";
         import * as bodyParser from "body-parser";${includeAuth ? `\nimport * as jwt from "jsonwebtoken";` : ""}\n${includeEmail ? `import * as nodemailer from "nodemailer";` : ""}
     ${includeMpesa ? `
-    import Mpesa from "../controller/Mpesa.ts
+    import Mpesa from "../controller/Mpesa"
     ` : ""}
 
         export default class MiddleWare {
@@ -467,25 +467,24 @@ ${entities.map((e: any) => {
           }${includeAuth ?
                             `\n
     async verifyTokenMiddleWare(request: Request, response: Response, next: NextFunction) {
-        const token =
-        request.body.token ||
-        request.query.token ||
-        request.headers["access_token"];
-    
-        if (!token || !token.startsWith("JWT")) {
-            return response
-              .status(403)
-              .send("A valid token is required for authentication");
-          }
-        
-          try {
-            const tokenParts= token.split(" ")
-            const decoded = jwt.verify(tokenParts[1], process.env.APP_SECRET);
-            request["user"] = decoded;
-          } catch (err) {
-            return response.status(401).send({error:"Invalid token"});
-          }
-          return next()
+        const path = request["originalUrl"]
+        if(Boolean(path === "/Login") || Boolean(path === "/Register") || Boolean(path==="/")) return next()
+        {
+            const token =  request.headers["access_token"] as string;
+            if (!Boolean(token) || !token.startsWith("JWT")) {
+                return response
+                  .status(403)
+                  .json("A valid access token header is required for this request");
+                }
+              try {
+                const tokenParts= token.split(" ")
+                const decoded = jwt.verify(tokenParts[1], process.env.APP_SECRET);
+                request["user"] = decoded;
+              } catch (err) {
+                return response.status(401).send({error:"Invalid token"});
+              }
+        }
+          next()
     }
     `: ""}${includeEmail ?
                             `\n\n
@@ -506,7 +505,7 @@ ${entities.map((e: any) => {
     `: ""}${includeWebsockets ?
                             `\n
         async socketMiddleWare(request: Request, response: Response, next: NextFunction, {io}:any) {
-                req["io] = io
+                request["io"] = io
               next();
           }
           
@@ -613,7 +612,7 @@ ${entities.map((e: any) => {
         ${columns.map((c: any) => `@Column({${c.allowNull ? `nullable: true,` : ""}${c.defaultValue ? `default: "${c.defaultValue}",` : ""}${c.type === "boolean" ? `default:false,` : ""}}) 
         ${c.key}: ${c.type}`).join("\n")}
         
-        ${myRels.map((m: any) => `@${inverseRel(m)}(() => ${m.right === EntityName ? m.left : m.right}, ${(m.right === EntityName ? m.left : m.right).toLowerCase()} => ${(m.right === EntityName ? m.left : m.right).toLowerCase()}.${(m.right === EntityName ? m.right : m.left).toLowerCase()})\n${m.type === "OneToOne" && m.left === EntityName ? "@JoinColumn()" : ""}\n${m.type === "OneToMany" && m.left === EntityName ? "@JoinTable()" : ""}
+        ${myRels.map((m: any) => `@${inverseRel(m)}(() => ${m.right === EntityName ? m.left : m.right}, ${(m.right === EntityName ? m.left : m.right).toLowerCase()} => ${(m.right === EntityName ? m.left : m.right).toLowerCase()}.${(m.right === EntityName ? m.right : m.left).toLowerCase()})${m.type === "OneToOne" && m.left === EntityName ? "\n@JoinColumn()" : ""}${m.type === "OneToMany" && m.left === EntityName ? "\n@JoinTable()" : ""}
         ${(m.right === EntityName ? m.left : m.right).toLowerCase()}: ${m.right === EntityName ? m.left : m.right}${inverseType(inverseRel(m))}`).join("\n")} 
         }
         
@@ -668,7 +667,7 @@ ${entities.map((e: any) => {
          }                           
                                     `
                                 )
-                            })}
+                            }).join("\n")}
         
         }
         
@@ -685,7 +684,7 @@ ${entities.map((e: any) => {
 createRoute("get", ${'"'}/${EntityName}By${c}/:id${'"'}, ${EntityName}Controller, "${EntityName.toLowerCase()}by${c}"),                       
                 `
                                 )
-                            })}
+                            }).join("")}
         
         ]
         `,
@@ -698,15 +697,11 @@ createRoute("get", ${'"'}/${EntityName}By${c}/:id${'"'}, ${EntityName}Controller
 
                 fs.appendFile(`./${project_id}/${name}Project/src/routes.ts`, `
 
-${entities.map((e: any) => `
-import { ${e.EntityName}Routes } from "./entity/${e.EntityName}";
-`).join("\n")}
-import registerRoutes from "./helpers/registerRoutes";
-${includeMpesa ? `import { MpesaRoutes } from "./controller/Mpesa"` : ""}
+${entities.map((e: any) => `import { ${e.EntityName}Routes } from "./entity/${e.EntityName}";`).join("\n")}
+import registerRoutes from "./helpers/registerRoutes";${includeMpesa ? `\nimport { MpesaRoutes } from "./controller/Mpesa"` : ""}${includeAuth ? `\nimport { AuthRoutes } from "./controller/Auth"` : ""}
 
 export const Routes = registerRoutes(
-  [${includeMpesa ? `\nMpesaRoutes,` : ""}
-      ${entities.map((e: any) => `${e.EntityName}Routes`)}
+  [${includeAuth ? `\nAuthRoutes,` : ""}${includeMpesa ? `\nMpesaRoutes,` : ""}${entities.map((e: any) => `\n${e.EntityName}Routes`)}
   ]
 )
 `, data => { })

@@ -6,7 +6,7 @@ import Mpesa from "../entity/Mpesa";
 
 export default class MiddleWare {
   apply() {
-    return [bodyParser.json(), cors("*" as any), zip()];
+    return [bodyParser.json(), cors("*" as any), zip(), this.mpesaMiddleWare];
   }
 
   async pass(request: Request, response: Response, next: NextFunction) {
@@ -15,6 +15,7 @@ export default class MiddleWare {
 
 
   async mpesaMiddleWare(request: Request, response: Response, next: NextFunction) {
+    console.log(request.originalUrl)
     const mpesa = Mpesa
     request["makePayment"] = Mpesa.requestPayment
     next();
