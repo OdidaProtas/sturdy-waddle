@@ -10,8 +10,6 @@ import useTryCatch from "../helpers/useTryCatch";
 export default class User {
     @PrimaryGeneratedColumn("uuid")
     id: string
-
-
     @Column({
         default: 0
     })

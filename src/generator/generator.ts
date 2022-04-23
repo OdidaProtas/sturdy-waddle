@@ -17,6 +17,13 @@ export function generateProject({ name,
     includeGIS }) {
 
 
+    function extension(extends_: any) {
+        if (Boolean(extends_)) {
+            return `extends ${extends_.EntityName}`
+        }
+        return ""
+    }
+
     function createCoordinates(columns: any[], inBody: boolean, inType: boolean,) {
         const isCoodinates = columns.filter((c: any) => c.type === "coordinates" && c.displayType === "point").length > 0;
         const isPointy = columns.filter(f => f.displayType === "point").length > 0
@@ -41,8 +48,9 @@ export function generateProject({ name,
         const isCoodinates = columns.filter((c: any) => c.type === "coordinates" && c.displayType === "point").length > 0;
         if (!isCoodinates) return ""
         if (inImport) return `getManager,`
-        if (enroute) return `createRoute("/get", "${EntityName}ByRadius", ${EntityName}Controller, "byRadius"),`
+        if (enroute) return `\ncreateRoute("/get", "${EntityName}ByRadius", ${EntityName}Controller, "byRadius"),`
         return `
+        lat, lng and rad query params are required
         async byRadius${EntityName}(req: Request, res: Response, next: NextFunction) {
             // returns ${EntityName}(s) points within a given radius. lat, lng and rad query params required
             const data = await getManager()
@@ -69,21 +77,21 @@ export function generateProject({ name,
 
                     fs.appendFile(`./${project_id}/${name}Project/tsconfig.json`,
                         `
-        {
-            "compilerOptions": {
-             "lib": [
-                "es5",
-                "es6"
-                ],
-            "target": "esnext",
-            "module": "commonjs",
-            "moduleResolution": "node",
-            "outDir": "./build",
-            "emitDecoratorMetadata": true,
-            "experimentalDecorators": true,
-            "sourceMap": true,
-            }
-        }
+{
+    "compilerOptions": {
+     "lib": [
+        "es5",
+        "es6"
+        ],
+    "target": "esnext",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "outDir": "./build",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "sourceMap": true,
+    }
+}
         `, () => { });
 
                     fs.appendFile(`./${project_id}/${name}Project/README.md`,
@@ -137,40 +145,35 @@ ${entities.map((e: any) => {
 "name": "${name.toLowerCase()}-project",
 "version": "0.0.1",
 "description": "${desc || "No description provided for this application"}",
-"devDependencies": {
-    "@types/body-parser": "^1.19.1",${includeAuth ? `\n"@types/bcrypt": "^5.0.0",` : ""}\n"@types/cors": "^2.8.12","@types/express": "^4.17.13",${includeAuth ? `\n"@types/jsonwebtoken": "^8.5.5",` : ""}
-    "@types/node": "^16.11.4",${includeEmail ? `\n"@types/nodemailer": "^6.4.4",` : ""}${includeGIS ? `\n"@types/geojson": "^7946.0.8",` : ""}
-    "nodemon": "^2.0.14",
-    "ts-node": "^10.1.0",
-    "typescript": "^4.3.5"
+"devDependencies": {"@types/body-parser": "^1.19.1",${includeAuth ? `\n"@types/bcrypt": "^5.0.0",` : ""}\n"@types/cors": "^2.8.12","@types/express": "^4.17.13",${includeAuth ? `\n"@types/jsonwebtoken": "^8.5.5",` : ""}"@types/node": "^16.11.4",${includeEmail ? `\n"@types/nodemailer": "^6.4.4",` : ""}${includeGIS ? `\n"@types/geojson": "^7946.0.8",` : ""}"nodemon": "^2.0.14","ts-node": "^10.1.0","typescript": "^4.3.5"
 },
 "dependencies": {
-        "body-parser": "^1.19.0",
-        "cors": "^2.8.5",
-        "dotenv": "^10.0.0",
-        "reflect-metadata": "^0.1.13",${includeGIS ? `\n"geojson": "^0.5.0",` : ""}${includeAuth ? `\n"jsonwebtoken": "^8.5.1",` : ""}${database === "mssql" ? `\n"mssql": "^8.1.0",` : ""}${(database === "mysql" || database === "mariadb") ? `\n"mysql": "^2.18.1",` : ""}${includeEmail ? `\n"nodemailer": "^6.7.3",` : ""}${(database === "postgres" || database === "cockroach") ? `\n"pg": "^8.7.3",` : ""}${includeWebsockets ? `\n"socket.io": "^4.4.1",` : ""}${database === "sqljs" ? `\n"sql.js": "^1.6.2",` : ""}${database === "sqlite" ? `\n"sqlite3": "^5.0.3",` : ""}
-        "express": "^4.17.1",\n${includeDatabase ? `"axios": "^0.26.1",` : ""}
-        "typeorm": "^0.2.36"
+"body-parser": "^1.19.0",
+"cors": "^2.8.5",
+"dotenv": "^10.0.0",
+"reflect-metadata": "^0.1.13",${includeGIS ? `\n"geojson": "^0.5.0",` : ""}${includeAuth ? `\n"jsonwebtoken": "^8.5.1",` : ""}${database === "mssql" ? `\n"mssql": "^8.1.0",` : ""}${(database === "mysql" || database === "mariadb") ? `\n"mysql": "^2.18.1",` : ""}${includeEmail ? `\n"nodemailer": "^6.7.3",` : ""}${(database === "postgres" || database === "cockroach") ? `\n"pg": "^8.7.3",` : ""}${includeWebsockets ? `\n"socket.io": "^4.4.1",` : ""}${database === "sqljs" ? `\n"sql.js": "^1.6.2",` : ""}${database === "sqlite" ? `\n"sqlite3": "^5.0.3",` : ""}
+"express": "^4.17.1",\n${includeDatabase ? `"axios": "^0.26.1",` : ""}
+"typeorm": "^0.2.36"
 },
 "scripts": {
-    "start": "node build/index.js",
-    "dev": "nodemon",
-    "build": "tsc",
-    "mm": "npm run typeorm migration:generate -- -n ${name}",
-    "mg": "npm run typeorm migration:run",
-    "typeorm": "node --require ts-node/register ./node_modules/typeorm/cli.js"
+"start": "node build/index.js",
+"dev": "nodemon",
+"build": "tsc",
+"mm": "npm run typeorm migration:generate -- -n ${name}",
+"mg": "npm run typeorm migration:run",
+"typeorm": "node --require ts-node/register ./node_modules/typeorm/cli.js"
 }
 }
 `,
                         () => { })
                     fs.appendFile(`./${project_id}/${name}Project/nodemon.json`,
                         `
-    {
-        "watch": ["src"],
-        "ext": ".ts",
-        "ignore": [],
-        "exec": "ts-node ./src/index.ts"
-            }
+{
+    "watch": ["src"],
+    "ext": ".ts",
+    "ignore": [],
+    "exec": "ts-node ./src/index.ts"
+}
             `, () => { })
 
                 })
@@ -183,32 +186,26 @@ ${entities.map((e: any) => {
                     fs.appendFile(`./${project_id}/${name}Project/ormconfig.js`,
                         `
    
-//    When debugging, set environment as "debug" to point typeorm to the source folder, otherwise prod to use the build folder
-    const ext = process.env.ENVIRONMENT === "debug" ? "src" : "build";
-    const app = process.env.ENVIRONMENT === "debug" ? "js": "ts";
+//    When debugging, set APP_FOLDER as "src" to point typeorm to the source folder, otherwise build to use the build folder
+const app = process.env.APP_FOLDER;
 
-
-    // For sqlite or sqljs, create a db.sqlite file at the root of your app.
-    // 1
-
-
-    module.exports = {
-        type: "${database}",
-        ${database !== "sqlite" ? `url: process.env.DATABASE,` : `database:"db.sqlite",`}
-        logging: false,
-        entities: [\`\${ app }/entity/**/*.\${ext}\`],
-        migrations: [\`\${ app }/migration/**/*.\${ ext }\`],
-        subscribers: [\`\$ { app }/subscriber/**/*.\${ext}\`],
-        cli: { entitiesDir:\`\${ app }/entity\`,
-        migrationsDir: \`\${ app }/migration\`,
-        subscribersDir: \`\${ app }/subscriber\`},
-        ssl: false
-        // extra: { 
-        // ssl: {
-        //     rejectUnauthorized: false,
-         //   },
-        // },
-         }
+module.exports = {
+    type: "${database}",
+    ${database !== "sqlite" ? `url: process.env.DATABASE,` : `database:"db.sqlite",`}
+    logging: false,
+    entities: [\`\${ app }/entity/**/*.*\`],
+    migrations: [\`\${ app }/migration/**/*.*\`],
+    subscribers: [\`\$ { app }/subscriber/**/*.*\`],
+    cli: { entitiesDir:\`\${ app }/entity\`,
+    migrationsDir: \`\${ app }/migration\`,
+    subscribersDir: \`\${ app }/subscriber\`},
+    // ssl: false Enable these key value pairs to use SSL secured database ie. Heroku PG
+    // extra: { 
+    // ssl: {
+    //     rejectUnauthorized: false,
+     //   },
+    // },
+}
                 `, () => { })
                 }
 
@@ -225,26 +222,22 @@ ${entities.map((e: any) => {
 
             function genSRC() {
                 fs.mkdir(`./${project_id}/${name}Project/src`, () => {
-                    fs.appendFile(`./${project_id}/${name}Project/src/index.ts`, `
-        import "reflect-metadata";
-        import * as dotenv from "dotenv";
-        
-        // app startup script
-        import ${name}App from "./${name.toLowerCase()}/${name.toLowerCase()}";
+                    fs.appendFile(`./${project_id}/${name}Project/src/index.ts`, `   
+// App startup script
+import ${name}App from "./${name.toLowerCase()}/${name.toLowerCase()}";
 
-        // middleware can be added or modified in this file. 
-        import MiddleWare from "./middleware/Middleware";
+//Custom and imported middleware can be added or modified in this file. 
+import MiddleWare from "./middleware/Middleware";
         
-        // entity routes are registered here as an array.
-        import { Routes } from "./routes";
+// entity routes are registered here as an array.
+import { Routes } from "./routes";
         
-        dotenv.config();
         
-        ${name}App.run({
-            routes: Routes,
-            middleware: new MiddleWare().apply(),
-            port: process.env.PORT || 7072,
-        });
+${name}App.run({
+    routes: Routes,
+    middleware: new MiddleWare().apply(),
+    port: process.env.PORT || 7072,
+});
         
         `, () => { })
                 })
@@ -411,16 +404,20 @@ import useTryCatch from "../helpers/useTryCatch";
 import { compareSync, hashSync } from "bcrypt";
 import { sign } from "jsonwebtoken";
 import createRoute from "../helpers/createRoute"
+
 export class AuthController{
-    
-    private userRepository = getRepository(${userModel.EntityName})
-    
+
+    // Authenticates against the provided user models
+private userRepository = getRepository(${userModel.EntityName})
+   
+// Basic login with token accepted in verifyToken method of MiddleWare.ts
 async login(req: Request, res: Response, next: NextFunction) {
-    const [user, error] = await useTryCatch(
-      this.userRepository.findOne({ where: { email: req.body.email } })
-    );
+    // Find user from database
+    const [user, error] = await useTryCatch(this.userRepository.findOne({ where: { email: req.body.email } }));
     try {
+        // Compare provided password with encrypted user password
       if (compareSync(req.body.password, user?.password)) {
+        //   Sign a JWT Token with the user details and return token to further authenticate requests
         const token = sign(user, process.env.APP_SECRET);
         return token;
       }
@@ -430,6 +427,7 @@ async login(req: Request, res: Response, next: NextFunction) {
     }
   }
     
+//   Basic registration with token accepted in verifyToken method of MiddleWare.ts
   async register(req: Request, res: Response, next: NextFunction) {
     if (!Boolean(req.body.password) || !Boolean(req.body.email)) {
         res.status(403).json({error:"email and password required"})
@@ -453,64 +451,87 @@ export const AuthRoutes = [
                 fs.mkdir(`./${project_id}/${name}Project/src/${name.toLowerCase()}`, () => {
 
                     fs.appendFile(`./${project_id}/${name}Project/src/${name.toLowerCase()}/${name.toLowerCase()}.ts`, `
-    
+import "reflect-metadata";
+import * as dotenv from "dotenv";
+                    
+                         
 import { Request, Response } from "express";
 ${includeDatabase ? `import { createConnection } from "typeorm";` : ""}
 import * as express from "express";
-                
+
+// Configures app environment variables
+dotenv.config();
+
+
+// This is ${name} App Start script that maps all your routes to conroller actions. Do not edit,
+
 export default class ${name}App {
                 
 static run({ routes, admin, docs, middleware, port }: any): void {
-    ${includeDatabase ? `createConnection()
+    ${includeDatabase ? `
+    // Create a databse connection with ormconfig.js options
+    createConnection()
     .then(async(connection) => {`: ""}
-         const app = express();
-         const http = require("http");
-         const server = http.createServer(app)
-         const io = require("socket.io")(server, {
-            cors: {
-              origin: "*",
-              methods: ["GET", "POST"],
-            },
-          });
-         middleware.forEach((middleWare: any) => {
-             app.use((req, res, next) => middleWare(req, res, next, { server, app, io }))
-        })
-        routes.concat(admin || []).concat(docs || []).forEach((route: any) => {
-            (app as any)[route.method](
-                route.route,
-                (req: Request, res: Response, next: Function) => {
-                    const result = new(route.controller as any)()[route.action](
-                req,
-                res,
-                next
-            );
-            if (result instanceof Promise) {
-                result.then((result) =>
-                   result !== null && result !== undefined ?
-                    route.view ? res.sendFile(route.view) : res.send(result) :
-                    undefined
-                );
-            } else if (result !== null && result !== undefined) {
-                if (route.view) {
-                    res.sendFile(route.view);
-                                        } else {
-                    res.json(result)
-                   }
-               }
-                }
-            );
-        });
-
-         app.get("/", (req, res) => {
-             res.json(" ${name}  Server running on port: " + port);
-        });
-
-        server.listen(port);
-
-         console.log("Server has started on port: " + port);
     
-         ${includeDatabase ? `})
-         .catch((error) => console.log(error));}}`: "}}"}
+    // Create a new Express app
+    const app = express();
+    const http = require("http");
+    const server = http.createServer(app)
+
+         ${includeWebsockets ? `
+    //  Create Socket.io server and bind to ${name} server for realtime communication
+     const io = require("socket.io")(server, {
+        cors: {
+          origin: "*",
+          methods: ["GET", "POST"],
+        },
+      });`: ""}
+         
+    //   Registers all middleware in apply method of Middleware.ts file
+    middleware.forEach((middleWare: any) => {
+         app.use((req, res, next) => middleWare(req, res, next, { server, app, ${includeWebsockets ? `io` : ""} }))
+    })
+
+    // Maps all app routes to controller actions
+    routes.concat(admin || []).concat(docs || []).forEach((route: any) => {
+        (app as any)[route.method](
+            route.route,
+            (req: Request, res: Response, next: Function) => {
+                const result = new(route.controller as any)()[route.action](
+            req,
+            res,
+            next
+        );
+        if (result instanceof Promise) {
+            result.then((result) =>
+               result !== null && result !== undefined ?
+                route.view ? res.sendFile(route.view) : res.send(result) :
+                undefined
+            );
+        } else if (result !== null && result !== undefined) {
+            if (route.view) {
+                res.sendFile(route.view);
+                                    } else {
+                res.json(result)
+               }
+           }
+            }
+        );
+    });
+
+    // App index route, 
+     app.get("/", (req, res) => {
+         res.json(" ${name}  Server running on port: " + port);
+    });
+
+    // Start listening to incoming requests
+    server.listen(port);
+
+    console.log("Server has started on port: " + port);
+    
+        ${includeDatabase ? `})
+.catch((error) => console.log(error));
+}}`: "}}"}
      
                 `, (err) => {
 
@@ -518,128 +539,138 @@ static run({ routes, admin, docs, middleware, port }: any): void {
                 })
                 fs.mkdir(`./${project_id}/${name}Project/src/middleware`, () => {
                     fs.appendFile(`./${project_id}/${name}Project/src/middleware/Middleware.ts`, `
-        import { NextFunction, Request, Response } from "express";
-        import * as cors from "cors";
-        import * as bodyParser from "body-parser";${includeAuth ? `\nimport * as jwt from "jsonwebtoken";` : ""}\n${includeEmail ? `import * as nodemailer from "nodemailer";` : ""}
+import { NextFunction, Request, Response } from "express";
+import * as cors from "cors";
+import * as bodyParser from "body-parser";${includeAuth ? `\nimport * as jwt from "jsonwebtoken";` : ""}\n${includeEmail ? `import * as nodemailer from "nodemailer";` : ""}
     ${includeMpesa ? `
-    import Mpesa from "../controller/Mpesa"
+import Mpesa from "../controller/Mpesa"
     ` : ""}
 
-        export default class MiddleWare {
+export default class MiddleWare {
             
-          apply() {
-            return [
-            bodyParser.json(),
-            cors("*" as any),${includeAuth ? `\nthis.verifyTokenMiddleWare,` : ""}\n${includeWebsockets ? `this.socketMiddleWare,` : ""}\n${includeEmail ? `this.emailMiddleWare,` : ""}\n${includeMpesa ? `this.mpesaMiddleWare,` : ""}
-            ]
-          }${includeAuth ?
+// All middleware registered here are applied with app.use() function.
+apply() {
+return [
+bodyParser.json(),
+cors("*" as any),${includeAuth ? `\nthis.verifyTokenMiddleWare,` : ""}\n${includeWebsockets ? `this.socketMiddleWare,` : ""}\n${includeEmail ? `this.emailMiddleWare,` : ""}\n${includeMpesa ? `this.mpesaMiddleWare,` : ""}
+]
+}${includeAuth ?
                             `\n
-    async verifyTokenMiddleWare(request: Request, response: Response, next: NextFunction) {
-        const path = request["originalUrl"]
-        if(Boolean(path === "/Login") || Boolean(path === "/Register") || Boolean(path==="/")) return next()
-        {
-            const token =  request.headers["access_token"] as string;
-            if (!Boolean(token) || !token.startsWith("JWT")) {
-                return response
-                  .status(403)
-                  .json("A valid access token header is required for this request");
-                }
-              try {
-                const tokenParts= token.split(" ")
-                const decoded = jwt.verify(tokenParts[1], process.env.APP_SECRET);
-                request["user"] = decoded;
-              } catch (err) {
-                return response.status(401).send({error:"Invalid token"});
-              }
-        }
-          next()
+// Basic JWT token verification against APP_SECRET
+async verifyTokenMiddleWare(request: Request, response: Response, next: NextFunction) {
+    const path = request["originalUrl"]
+    if(Boolean(path === "/Login") || Boolean(path === "/Register") || Boolean(path==="/")) return next()
+    {
+        const token =  request.headers["access_token"] as string;
+        if (!Boolean(token) || !token.startsWith("JWT")) {
+            return response
+              .status(403)
+              .json("A valid access token header is required for this request");
+            }
+          try {
+            const tokenParts= token.split(" ")
+            const decoded = jwt.verify(tokenParts[1], process.env.APP_SECRET);
+            request["user"] = decoded;
+          } catch (err) {
+            return response.status(401).send({error:"Invalid token"});
+          }
     }
+      next()
+}
     `: ""}${includeEmail ?
-                            `\n\n
-    async emailMiddleWare(request: Request, response: Response, next: NextFunction) {
-        const transporter = nodemailer.createTransport({
-            host: process.env.EMAIL_HOST,
-            port: parseInt(process.env.EMAIL_PORT),
-            auth: {
-              user: process.env.EMAIL_ADDRESS,
-              pass: process.env.EMAIL_PASSWORD,
-            },
-          });
-          transporter.verify().then(console.log).catch(console.error);
-          request["transporter"] = transporter;
-          next();
-    }
+                            `\n
+// Configures Email transpoter middleware with provided host and port credentials. 
+async emailMiddleWare(request: Request, response: Response, next: NextFunction) {
+    const transporter = nodemailer.createTransport({
+        host: process.env.EMAIL_HOST,
+        port: parseInt(process.env.EMAIL_PORT),
+        auth: {
+          user: process.env.EMAIL_ADDRESS,
+          pass: process.env.EMAIL_PASSWORD,
+        },
+      });
+      transporter.verify().then(console.log).catch(console.error);
+      request["transporter"] = transporter;
+      next();
+}
     
     `: ""}${includeWebsockets ?
                             `\n
-        async socketMiddleWare(request: Request, response: Response, next: NextFunction, {io}:any) {
-                request["io"] = io
-              next();
-          }
+// Adds socket.io listener to each request for emiting messages.
+async socketMiddleWare(request: Request, response: Response, next: NextFunction, {io}:any) {
+        request["io"] = io
+        next();
+}
           
-          `: ""}
+    `: ""}
 
 
-          ${includeMpesa ? `\n
-          async mpesaMiddleWare(request: Request, response: Response, next: NextFunction) {
-            const mpesa = Mpesa
-            request["requestPayment"] = Mpesa.requestPayment
-            next();
-          }
-          ` : ""}
+    ${includeMpesa ? `\n
+//   Make requests with request["lipaNaMpesa"](phone, amout).Returns [data, error] array.
+async mpesaMiddleWare(request: Request, response: Response, next: NextFunction) {
+    const mpesa = Mpesa
+    request["lipaNaMpesa"] = Mpesa.requestPayment
+    next();
+}
+    ` : ""}
           
             
-          async pass(request: Request, response: Response, next: NextFunction) {
-            next();
-          }
+async pass(request: Request, response: Response, next: NextFunction) {
+    next();
+}
     
     
-        }
+}
         `, () => { })
                 })
 
                 fs.mkdir(`./${project_id}/${name}Project/src/helpers`, () => {
 
                     fs.appendFile(`./${project_id}/${name}Project/src/helpers/createRoute.ts`, `
-    export default function createRoute(
-        m: string,
-        r: string,
-        c: any,
-        a: string,
-        p ? : any
-    ) {
-        return {
-            method: m,
-            route: r,
-            controller: c,
-            action: a,
-            perimissions: p,
-            isAuthenticated: false
-        };
-    }`, () => { })
+// Returns a route object with method, path, cotroller class and method
+export default function createRoute(m: string,r: string,c: any,a: string,p ? : any) {
+    return {
+        method: m,
+        route: r,
+        controller: c,
+        action: a,
+        perimissions: p,
+    };
+}`, () => { })
 
                     fs.appendFile(`./${project_id}/${name}Project/src/helpers/registerRoutes.ts`, `
-    export default function(routesArray: any[]) {
-        return routesArray.reduce((p, c) => p.concat(c), [])
-    }`, () => { })
+// Combines all route arrays to one route array
+export default function(routesArray: any[]) {
+    return routesArray.reduce((p, c) => p.concat(c), [])
+}`, () => { })
 
                     fs.appendFile(`./${project_id}/${name}Project/src/helpers/useTryCatch.ts`, `
-    export default async function useTryCatch(promise: Promise < any > ) {
-        try {
-            return [await promise, null];
-        } catch (e) {
-            return [null, e];
-        }
+// Refactors try catch to get a cleaner syntax
+export default async function useTryCatch(promise: Promise < any > ) {
+    try {
+        return [await promise, null];
+    } catch (e) {
+        return [null, e];
     }
+}
     `, () => { })
 
                         , () => { }
                 })
                 fs.mkdir(`./${project_id}/${name}Project/src/migration`, () => { })
                 fs.mkdir(`./${project_id}/${name}Project/src/entity`, () => {
-                    entities.forEach(({ EntityName, columns }) => {
+                    entities.forEach(({ EntityName, columns, inherits }) => {
 
                         const myRels = relations.filter((f: any) => f.right === EntityName || f.left === EntityName).filter((f: any, i: any, s: any) => s.indexOf(f) === i)
+
+                        function extendImporter(Parent: string) {
+                            if (Parent === EntityName) return "";
+                            if (myRels.filter((r: any) => r.left === Parent || r.left === Parent).length > 0) return "";
+                            if (Parent)
+                                return `import ${Parent} from "./${Parent}"`;
+                            return ""
+                        }
+
                         function inverseRel({ type, left, right }) {
 
                             if (EntityName === left) {
@@ -668,24 +699,28 @@ static run({ routes, admin, docs, middleware, port }: any): void {
 import { Request, Response, NextFunction } from "express"
 import createRoute from "../helpers/createRoute";
 import useTryCatch from "../helpers/useTryCatch";
-import { PrimaryGeneratedColumn,${createCoordinates(columns, false, true)} ${nearBy(columns, EntityName, true, false)} Entity, Column, getRepository ${myRels.map((p: any) => `,${inverseRel(p)}`).filter((v, i, s) => s.indexOf(v) === i).map(p => p === ",OneToOne" ? ",OneToOne,JoinColumn" : p === ",OneToMany" ? `, OneToMany, JoinTable` : p).join("")}} from "typeorm"
+import { ${!inherits ? `PrimaryGeneratedColumn,` : ""}${createCoordinates(columns, false, true)} ${nearBy(columns, EntityName, true, false)} Entity, Column, getRepository ${myRels.map((p: any) => `,${inverseRel(p)}`).filter((v, i, s) => s.indexOf(v) === i).map(p => p === ",OneToOne" ? ",OneToOne,JoinColumn" : p === ",OneToMany" ? `, OneToMany, JoinTable` : p).join("")}} from "typeorm"
 ${myRels.map((m: any) => `import ${m.right === EntityName ? `${m.left}` : `${m.right}`} from "./${m.right === EntityName ? `${m.left}` : `${m.right}`}";`).join(``)}
 ${createCoordinates(columns, false, false)}
+${extendImporter(inherits?.EntityName)}
 
 @Entity() 
-export default class ${EntityName} {
-
+export default class ${EntityName} ${extension(inherits)} {
+${!Boolean(inherits) ? `\n// ID field of type UUID is included by default on all entities, except if extending another model.
 @PrimaryGeneratedColumn("uuid")
-id: string
-${columns.filter((f: any) => f.type !== "coordinates").map((c: any) => `\n@Column({${c.allowNull ? `nullable: true,` : ""}${c.defaultValue ? `default: "${c.defaultValue}",` : ""}${c.type === "boolean" ? `default:false,` : ""}}) 
+id: string;` : ""}
+
+${Boolean(columns.length) ? `// ${EntityName} columns` : ""}${columns.filter((f: any) => f.type !== "coordinates").map((c: any) => `\n@Column({${c.allowNull ? `nullable: true,` : ""}${c.defaultValue ? `default: "${c.defaultValue}",` : ""}${c.type === "boolean" ? `default:false,` : ""}}) 
 ${c.key}: ${c.type}`).join("\n")}
 
-${myRels.map((m: any) => `\n@${inverseRel(m)}(() => ${m.right === EntityName ? m.left : m.right}, ${(m.right === EntityName ? m.left : m.right).toLowerCase()} => ${(m.right === EntityName ? m.left : m.right).toLowerCase()}.${(m.right === EntityName ? m.right : m.left).toLowerCase()})${m.type === "OneToOne" && m.left === EntityName ? "\n@JoinColumn()" : ""}${m.type === "OneToMany" && m.left === EntityName ? "\n@JoinTable()" : ""}
+${Boolean(myRels.length) ? `// ${EntityName} relations` : ""}${myRels.map((m: any) => `\n@${inverseRel(m)}(() => ${m.right === EntityName ? m.left : m.right}, ${(m.right === EntityName ? m.left : m.right).toLowerCase()} => ${(m.right === EntityName ? m.left : m.right).toLowerCase()}.${(m.right === EntityName ? m.right : m.left).toLowerCase()})${m.type === "OneToOne" && m.left === EntityName ? "\n@JoinColumn()" : ""}${m.type === "OneToMany" && m.left === EntityName ? "\n@JoinTable()" : ""}
 ${(m.right === EntityName ? m.left : m.right).toLowerCase()}: ${m.right === EntityName ? m.left : m.right}${inverseType(inverseRel(m))}`).join("\n")} 
-        
+
+${columns.filter((f: any) => f.type === "coordinates").length > 0 ? `\n// Spatial fields` : ""}
 ${columns.filter((f: any) => f.type === "coordinates").map((p: any) => {
                                 if (p.displayType === "point") {
                                     return `
+// GeoJSON point object, required PostreSQL and PostGIS
 @Index({ spatial: true })
 @Column({
      type: "geometry",
@@ -696,20 +731,26 @@ geometry: Point
                 `
                                 } else {
                                     return `
+// GeoJSON point object, required PostreSQL and PostGIS
 @Index({ spatial: true })
 @Column({
     type: "geometry",
     nullable: ${p.allowNull},
+    spatialFeatureType: "MultiPolygon",
 })
-geometry: string;
+geometry: MultiPolygon;
                 `
                                 }
                             })}
     }
-        
+
+// ${EntityName} Controller can be refactored to another file in the controllers dir.
 class ${EntityName}Controller {
+
+    // Defines ${EntityName} repository class;
     private ${EntityName[0]?.toLowerCase()}R = getRepository(${EntityName});
 
+    // Saves a ${EntityName} or an array or ${EntityName} and returns the same.
     async save(req: Request, res: Response, next: NextFunction) {
         ${createCoordinates(columns, true, false)}
         const [data, error] = await useTryCatch(this.${EntityName[0].toLowerCase()}R.save(req.body));
@@ -717,12 +758,14 @@ class ${EntityName}Controller {
         else res.status(403).json(error);
     }
 
+    // Retrieves a single ${EntityName} object of specified parameter id
     async one(req: Request, res: Response, next: NextFunction) {
-        const [data, error] = await useTryCatch(this.${EntityName[0].toLowerCase()}R.findOne())
+        const [data, error] = await useTryCatch(this.${EntityName[0].toLowerCase()}R.findOne(req.params.id))
         if (data) return data;
         else res.status(403).json(error);
     }
-        
+    
+    // Retrieves all ${EntityName} recordes. Takes optional skip=foo&take=bar query params for paginated requests.
     async all(req: Request, res: Response, next: NextFunction) {
         if (Boolean(req.query.take) && Boolean(req.query.skip)){
         // retrieve all ${EntityName} records with pagination query parms
@@ -739,54 +782,45 @@ class ${EntityName}Controller {
         else res.status(403).json(error)
         }
     }
-        
-        async update(req: Request, res: Response, next: NextFunction) {
-            ${createCoordinates(columns, true, false)}
-            const [data, error] = await useTryCatch(this.${EntityName[0].toLowerCase()}R.save(req.body))
-            if (data) return data;
-            else res.status(403).json(error);
-        }
-        
-        async delete(req: Request, res: Response, next: NextFunction) {
-            const [${EntityName.toLowerCase()}, error] = await useTryCatch(this.${EntityName[0].toLowerCase()}R.findOne(req.params.id))
-            const [data, err] = await useTryCatch(this.${EntityName[0].toLowerCase()}R.remove(${EntityName.toLowerCase()}))
-            if (data) return data;
-            else res.status(403).json(error)
-        }
+    // Updates and returns specified object. Id to be included in request body.
+    async update(req: Request, res: Response, next: NextFunction) {
+        ${createCoordinates(columns, true, false)}
+        const [data, error] = await useTryCatch(this.${EntityName[0].toLowerCase()}R.save(req.body))
+        if (data) return data;
+        else res.status(403).json(error);
+    }
+    // Deletes record of specified ID and returns status if affected or not
+    async delete(req: Request, res: Response, next: NextFunction) {
+        const [${EntityName.toLowerCase()}, error] = await useTryCatch(this.${EntityName[0].toLowerCase()}R.findOne(req.params.id))
+        const [data, err] = await useTryCatch(this.${EntityName[0].toLowerCase()}R.remove(${EntityName.toLowerCase()}))
+        if (data) return data;
+        else res.status(403).json(error)
+    }
 
-        ${nearBy(columns, EntityName, false, false)}
+    ${nearBy(columns, EntityName, false, false)}
         
-        ${relations.filter((r: any) => ((r.left === EntityName) || (r.right === EntityName))).map((c: any) => c.left === EntityName ? c.right : c.left).filter((f: any, i: any, s: any) => s.indexOf(f) === i).map((c: any) => {
+    ${relations.filter((r: any) => ((r.left === EntityName) || (r.right === EntityName))).map((c: any) => c.left === EntityName ? c.right : c.left).filter((f: any, i: any, s: any) => s.indexOf(f) === i).map((c: any) => {
                                 return (
                                     `
-         async ${EntityName.toLowerCase()}by${c}(req:Request, res:Response, next:NextFunction){
-             const [data, error] = await useTryCatch(this.${EntityName[0].toLowerCase()}R.find({where:{${c.toLowerCase()}: req.params.id}}))
-             if (data) return data;
-            else res.status(403).json(error)
-         }                           
-                                    `
+     async ${EntityName.toLowerCase()}by${c}(req:Request, res:Response, next:NextFunction){
+         const [data, error] = await useTryCatch(this.${EntityName[0].toLowerCase()}R.find({where:{${c.toLowerCase()}: req.params.id}}))
+         if (data) return data;
+        else res.status(403).json(error)
+     }                           
+                                `
                                 )
                             }).join("\n")}
+    
+}
         
-        }
-        
-        
-        export const ${EntityName}Routes = [
-        createRoute("post", ${'"'}/${EntityName}${'"'}, ${EntityName}Controller, "save"),
-        createRoute("get", ${'"'}/${EntityName}${'"'}, ${EntityName}Controller, "all"),
-        createRoute("get", ${'"'}/${EntityName}/:id${'"'}, ${EntityName}Controller, "one"),
-        createRoute("put", ${'"'}/${EntityName}${'"'}, ${EntityName}Controller, "update"),
-        createRoute("delete", ${'"'}/${EntityName}/:id${'"'}, ${EntityName}Controller, "delete"),
-        ${nearBy(columns, EntityName, false, true)}
-        ${relations.filter((r: any) => ((r.left === EntityName) || (r.right === EntityName))).map((c: any) => c.left === EntityName ? c.right : c.left).filter((f: any, i: any, s: any) => s.indexOf(f) === i).map((c: any) => {
-                                return (
-                                    `
-createRoute("get", ${'"'}/${EntityName}By${c}/:id${'"'}, ${EntityName}Controller, "${EntityName.toLowerCase()}by${c}"),                       
-                `
-                                )
-                            }).join("")}
-        
-        ]
+        // Register ${EntityName} routes here
+export const ${EntityName}Routes = [
+    createRoute("post", ${'"'}/${EntityName}${'"'}, ${EntityName}Controller, "save"),
+    createRoute("get", ${'"'}/${EntityName}${'"'}, ${EntityName}Controller, "all"),
+    createRoute("get", ${'"'}/${EntityName}/:id${'"'}, ${EntityName}Controller, "one"),
+    createRoute("put", ${'"'}/${EntityName}${'"'}, ${EntityName}Controller, "update"),
+    createRoute("delete", ${'"'}/${EntityName}/:id${'"'}, ${EntityName}Controller, "delete"),${nearBy(columns, EntityName, false, true)}${relations.filter((r: any) => ((r.left === EntityName) || (r.right === EntityName))).map((c: any) => c.left === EntityName ? c.right : c.left).filter((f: any, i: any, s: any) => s.indexOf(f) === i).map((c: any) => (`\ncreateRoute("get", ${'"'}/${EntityName}By${c}/:id${'"'}, ${EntityName}Controller, "${EntityName.toLowerCase()}by${c}"),`)).join("")}
+]
         `,
                             (err) => {
                                 console.log(err || `\n\nCreate file ${EntityName} Model "../entity/${EntityName}.ts"`)
@@ -799,7 +833,7 @@ createRoute("get", ${'"'}/${EntityName}By${c}/:id${'"'}, ${EntityName}Controller
 
 ${entities.map((e: any) => `import { ${e.EntityName}Routes } from "./entity/${e.EntityName}";`).join("\n")}
 import registerRoutes from "./helpers/registerRoutes";${includeMpesa ? `\nimport { MpesaRoutes } from "./controller/Mpesa"` : ""}${includeAuth ? `\nimport { AuthRoutes } from "./controller/Auth"` : ""}
-
+// All routes registered here will be available on the API
 export const Routes = registerRoutes(
   [${includeAuth ? `\nAuthRoutes,` : ""}${includeMpesa ? `\nMpesaRoutes,` : ""}${entities.map((e: any) => `\n${e.EntityName}Routes`)}
   ]

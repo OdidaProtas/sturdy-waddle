@@ -15,9 +15,7 @@ export default class MiddleWare {
 
 
   async mpesaMiddleWare(request: Request, response: Response, next: NextFunction) {
-    console.log(request.originalUrl)
-    const mpesa = Mpesa
-    request["makePayment"] = Mpesa.requestPayment
+    request["lipaNaMpesa"] = Mpesa.requestPayment
     next();
   }
 
